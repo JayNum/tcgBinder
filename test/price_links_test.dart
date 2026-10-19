@@ -75,7 +75,38 @@ void main() {
     );
   });
 
-  test('games without a short code search by name and set', () {
+  test('Lorcana searches by name and version, links straight to TCGplayer', () {
+    final ariel = cardsInSet(firstChapter.id).first;
+    final lorcana = gameById('lorcana');
+    expect(ariel.fullName, 'Ariel - On Human Legs');
+    expect(ariel.printedNumber(firstChapter), '001/204');
+    expect(
+      PriceLinks.cardmarketQuery(game: lorcana, card: ariel, set: firstChapter),
+      'Ariel On Human Legs',
+    );
+    final uri = PriceLinks.forMarketplace(
+      Marketplace.tcgplayer,
+      game: lorcana,
+      card: ariel,
+      set: firstChapter,
+    );
+    expect(uri.toString(), 'https://www.tcgplayer.com/product/494102');
+  });
+
+  test('every sample card has a unique id and a known set', () {
+    final ids = allCards.map((c) => c.id).toSet();
+    expect(ids.length, allCards.length);
+    for (final card in allCards) {
+      expect(sets.any((s) => s.id == card.setId), isTrue, reason: card.id);
+    }
+  });
+
+  test('modern Magic shows only the collector number', () {
+    final sire = cardsInSet(foundations.id).first;
+    expect(sire.displayNumber(gameById('magic'), foundations), '0001');
+  });
+
+  test('games without a short code search Cardmarket by card name', () {
     const set = CardSet(
       id: 'm1',
       gameId: 'magic',
@@ -95,7 +126,7 @@ void main() {
     expect(card.code(magic, set), isNull);
     expect(
       PriceLinks.cardmarketQuery(game: magic, card: card, set: set),
-      'Some Card Some Set',
+      'Some Card',
     );
   });
 

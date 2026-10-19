@@ -51,8 +51,9 @@ class CardSet {
   final String name;
   final int releaseYear;
 
-  /// The total printed on the cards, e.g. 102 in `004/102`.
-  final int printedTotal;
+  /// The total printed on the cards, e.g. 102 in `004/102`. Null when the
+  /// cards only print their own number (modern Magic: `0001`).
+  final int? printedTotal;
 }
 
 class CatalogCard {
@@ -62,6 +63,7 @@ class CatalogCard {
     required this.number,
     required this.name,
     required this.rarity,
+    this.subtitle,
     this.cardmarketUrl,
     this.tcgplayerUrl,
   });
@@ -72,14 +74,21 @@ class CatalogCard {
   final String name;
   final String rarity;
 
+  /// Second part of the name, e.g. Lorcana's version "On Human Legs".
+  final String? subtitle;
+
   /// Direct product pages, when the catalog source provides them
   /// (Scryfall and pokemontcg.io do). Otherwise we fall back to a search.
   final String? cardmarketUrl;
   final String? tcgplayerUrl;
 
+  String get fullName => subtitle == null ? name : '$name - $subtitle';
+
   String printedNumber(CardSet set) {
-    final width = set.printedTotal.toString().length.clamp(3, 4);
-    return '${number.toString().padLeft(width, '0')}/${set.printedTotal}';
+    final total = set.printedTotal;
+    if (total == null) return number.toString().padLeft(4, '0');
+    final width = total.toString().length.clamp(3, 4);
+    return '${number.toString().padLeft(width, '0')}/$total';
   }
 
   /// What's printed on the card and shown above its pocket:

@@ -6,6 +6,15 @@ import '../theme/app_theme.dart';
 import '../widgets/ad_banner.dart';
 import 'binder_screen.dart';
 
+/// Default binder cover per game, until users customize them (Premium).
+const _coverColors = <String, Color>{
+  'pokemon': Color(0xFF2B50D6),
+  'onepiece': Color(0xFFB42318),
+  'magic': Color(0xFF3A3A40),
+  'lorcana': Color(0xFF6B46A8),
+  'riftbound': Color(0xFF1F6B45),
+};
+
 /// Home: all of the user's binders.
 class ShelfScreen extends StatelessWidget {
   const ShelfScreen({super.key});
@@ -56,7 +65,8 @@ class ShelfScreen extends StatelessWidget {
                                   width: 56,
                                   height: 78,
                                   decoration: BoxDecoration(
-                                    color: context.accent,
+                                    color: _coverColors[set.gameId] ??
+                                        context.accent,
                                     borderRadius: const BorderRadius.horizontal(
                                       left: Radius.circular(3),
                                       right: Radius.circular(8),

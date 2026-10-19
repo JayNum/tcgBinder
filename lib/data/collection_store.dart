@@ -44,17 +44,48 @@ class CollectionStore extends ChangeNotifier {
     const brown = Color(0xFFA6784A);
     const grey = Color(0xFF8C9198);
     const green = Color(0xFF5E9E6A);
-    return CollectionStore({
-      'base1-1': const CollectionEntry(cardId: 'base1-1', demoColor: purple),
-      'base1-2': const CollectionEntry(cardId: 'base1-2', demoColor: blue),
-      'base1-4': const CollectionEntry(
-          cardId: 'base1-4', quantity: 2, demoColor: red),
-      'base1-7': const CollectionEntry(cardId: 'base1-7', demoColor: brown),
-      'base1-8': const CollectionEntry(cardId: 'base1-8'),
-      'base1-9': const CollectionEntry(cardId: 'base1-9', demoColor: grey),
-      'base1-10': const CollectionEntry(cardId: 'base1-10', demoColor: purple),
-      'base1-15': const CollectionEntry(cardId: 'base1-15', demoColor: green),
-    });
+    const yellow = Color(0xFFC9A227);
+    const navy = Color(0xFF3B4A7A);
+
+    CollectionEntry e(String id, {Color? color, int quantity = 1}) =>
+        CollectionEntry(cardId: id, demoColor: color, quantity: quantity);
+
+    final entries = [
+      // Pokémon Base Set
+      e('pokemon-base1-1', color: purple),
+      e('pokemon-base1-2', color: blue),
+      e('pokemon-base1-4', color: red, quantity: 2),
+      e('pokemon-base1-7', color: brown),
+      e('pokemon-base1-8'),
+      e('pokemon-base1-9', color: grey),
+      e('pokemon-base1-10', color: purple),
+      e('pokemon-base1-15', color: green),
+      // One Piece OP16
+      e('onepiece-op16-1', color: red),
+      e('onepiece-op16-3', color: red),
+      e('onepiece-op16-11', color: red, quantity: 3),
+      e('onepiece-op16-14', color: red),
+      e('onepiece-op16-15', color: red),
+      e('onepiece-op16-22', color: green),
+      e('onepiece-op16-26'),
+      // Magic Foundations
+      e('magic-fdn-1', color: grey),
+      e('magic-fdn-2', color: yellow),
+      e('magic-fdn-9', color: yellow, quantity: 4),
+      e('magic-fdn-17', color: yellow),
+      // Lorcana The First Chapter
+      e('lorcana-1-1', color: yellow),
+      e('lorcana-1-12', color: yellow, quantity: 2),
+      e('lorcana-1-18', color: yellow),
+      e('lorcana-1-21', color: yellow),
+      e('lorcana-1-23'),
+      // Riftbound Origins
+      e('riftbound-ogn-1', color: red),
+      e('riftbound-ogn-13', color: navy, quantity: 3),
+      e('riftbound-ogn-15', color: red),
+      e('riftbound-ogn-25', color: red),
+    ];
+    return CollectionStore({for (final entry in entries) entry.cardId: entry});
   }
 }
 

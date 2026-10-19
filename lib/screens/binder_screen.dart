@@ -59,7 +59,12 @@ class _BinderScreenState extends State<BinderScreen> {
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
             ),
             Text(
-              '${game.name} · ${widget.set.code} · ${widget.set.printedTotal} cards',
+              [
+                game.name,
+                widget.set.code,
+                if (widget.set.printedTotal != null)
+                  '${widget.set.printedTotal} cards',
+              ].join(' · '),
               style: TextStyle(fontSize: 12, color: tokens.muted),
             ),
           ],

@@ -47,7 +47,7 @@ class PriceLinks {
     required CardSet set,
     Edition? edition,
   }) {
-    final parts = [card.name, set.name];
+    final parts = [card.name, if (card.subtitle != null) card.subtitle!, set.name];
     if (edition != null && edition != Edition.unlimited) {
       parts.add(edition.label);
     }
@@ -57,7 +57,9 @@ class PriceLinks {
   /// Cardmarket search by card code, the way collectors search there:
   /// `OP16-001` for One Piece / Riftbound (also finds every alt-art),
   /// `Charizard BS 4` for Pokémon (Cardmarket names it "Charizard (BS 4)"),
-  /// name + set for games without a short code.
+  /// the card's full name for Magic and Lorcana. Cardmarket only matches
+  /// product names, so the set name is left out; the results list every
+  /// printing with its set.
   static String cardmarketQuery({
     required Game game,
     required CatalogCard card,
@@ -70,7 +72,9 @@ class PriceLinks {
       case CardCodeStyle.spaced:
         return '${card.name} $code';
       case CardCodeStyle.none:
-        return searchQuery(card: card, set: set);
+        return card.subtitle == null
+            ? card.name
+            : '${card.name} ${card.subtitle}';
     }
   }
 
