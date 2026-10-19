@@ -42,7 +42,7 @@ class CardSet {
     required this.code,
     required this.name,
     required this.releaseYear,
-    required this.printedTotal,
+    this.printedTotal,
   });
 
   final String id;
