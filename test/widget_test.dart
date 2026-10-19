@@ -34,6 +34,13 @@ void main() {
 
     expect(find.text('YOUR COPY'), findsOneWidget);
     expect(find.text('Near Mint'), findsOneWidget);
+
+    // The banner must stay a banner, not fill the screen.
+    final banner = find.text('Ad · banner placeholder');
+    expect(tester.getSize(find.ancestor(
+      of: banner,
+      matching: find.byType(SafeArea),
+    ).first).height, lessThan(100));
   });
 
   testWidgets('sets can be sorted by name', (tester) async {

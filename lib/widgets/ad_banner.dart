@@ -11,7 +11,10 @@ class AdBannerPlaceholder extends StatelessWidget {
     final tokens = context.binder;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
+      // heightFactor 1: only as tall as the banner, also when used as a
+      // Scaffold's bottomNavigationBar (which would otherwise fill the screen).
       child: Center(
+        heightFactor: 1,
         child: Container(
           width: 320,
           height: 50,
