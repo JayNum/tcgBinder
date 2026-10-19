@@ -11,6 +11,7 @@ import '../services/ads.dart';
 import '../services/photos.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
+import 'arrange_games_screen.dart';
 import 'game_screen.dart';
 
 /// Home: collection stats and one tile per supported game.
@@ -21,6 +22,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
+    final shown = arrangedGames(SettingsScope.of(context));
 
     return Scaffold(
       appBar: AppBar(
@@ -64,21 +66,44 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  'Long-press a game to change its image',
-                  style: TextStyle(fontSize: 11, color: tokens.labelMissing),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ArrangeGamesScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.swap_vert, size: 18),
+                  label: const Text('Arrange'),
                 ),
               ],
             ),
           ),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.15,
-            children: [for (final game in games) _GameTile(game: game)],
+          if (shown.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Text(
+                'All games are hidden. Tap Arrange to show them again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: tokens.muted),
+              ),
+            )
+          else
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.15,
+              children: [for (final game in shown) _GameTile(game: game)],
+            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              'Tip: long-press a game to give it your own image.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: tokens.labelMissing),
+            ),
           ),
         ],
       ),

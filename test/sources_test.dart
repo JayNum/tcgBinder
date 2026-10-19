@@ -62,6 +62,36 @@ void main() {
       expect(cards.single.setId, 'onepiece-PRB-01');
     });
 
+    test('combined sets like OP14-EB04 sort between OP-13 and OP-16', () {
+      expect(OnePieceSource.displayCode('OP14-EB04'), 'OP-14');
+      expect(OnePieceSource.displayCode('OP-16'), 'OP-16');
+      expect(OnePieceSource.ownPrefixes('OP14-EB04'), ['OP14', 'EB04']);
+      expect(OnePieceSource.ownPrefixes('PRB-01'), ['PRB01']);
+
+      final combined = CardSet(
+        id: 'onepiece-OP14-EB04',
+        gameId: 'onepiece',
+        sourceId: 'OP14-EB04',
+        code: 'OP-14',
+        name: "The Azure Sea's Seven",
+        order: 17,
+        released: DateTime(2026, 3, 13),
+      );
+      Map<String, Object?> card(String code) => {
+            'card_set_id': code,
+            'card_name': 'X',
+            'rarity': 'C',
+            'set_id': 'OP14-EB04',
+            'card_image_id': code,
+          };
+      final cards = OnePieceSource.parseCards(
+        [card('OP14-001'), card('EB04-001'), card('OP01-001')],
+        combined,
+      );
+      final reprints = {for (final c in cards) c.code: c.reprint};
+      expect(reprints, {'OP14-001': false, 'EB04-001': false, 'OP01-001': true});
+    });
+
     test('drops number notes from names', () {
       final (name, notes) =
           OnePieceSource.splitName('Charlotte Linlin (112)', 'OP17-112');

@@ -51,12 +51,15 @@ class OnePieceSource extends CatalogSource {
     final sets = <CardSet>[];
     var order = 0;
     for (final s in boosters) {
-      final code = s.str('set_id');
-      if (code.isEmpty) continue;
+      final sourceId = s.str('set_id');
+      if (sourceId.isEmpty) continue;
+      // Some sets contain two code ranges, e.g. "OP14-EB04"; we show the
+      // first one ("OP-14").
+      final code = displayCode(sourceId);
       sets.add(CardSet(
-        id: 'onepiece-$code',
+        id: 'onepiece-$sourceId',
         gameId: gameId,
-        sourceId: code,
+        sourceId: sourceId,
         code: code,
         name: s.str('set_name'),
         order: order++,
@@ -131,7 +134,7 @@ class OnePieceSource extends CatalogSource {
   ) {
     final seen = <String>{};
     final cards = <CatalogCard>[];
-    final ownPrefix = set.code.replaceAll('-', '');
+    final own = ownPrefixes(set.sourceId);
     for (final row in rows) {
       final code = row.str('card_set_id');
       if (code.isEmpty) continue;
@@ -156,13 +159,28 @@ class OnePieceSource extends CatalogSource {
         subtitle: notes.isEmpty ? null : notes.join(' · '),
         rarity: row.str('rarity'),
         variant: variant,
-        reprint: set.kind != SetKind.promo && !code.startsWith(ownPrefix),
+        reprint: set.kind != SetKind.promo && !own.any(code.startsWith),
         versionKey: 'onepiece|$code',
         cardmarketQuery: code,
       ));
     }
     cards.sort(compareBinderOrder);
     return cards;
+  }
+
+  /// The code prefixes printed on a set's own cards:
+  /// `OP-16` → `[OP16]`, `OP14-EB04` → `[OP14, EB04]`, `ST-01` → `[ST01]`.
+  static List<String> ownPrefixes(String sourceId) => RegExp(r'[A-Z]+\d+')
+      .allMatches(sourceId.toUpperCase().replaceAll('-', ''))
+      .map((m) => m.group(0)!)
+      .toList();
+
+  /// `OP14-EB04` → `OP-14`; `OP-16` stays `OP-16`.
+  static String displayCode(String sourceId) {
+    final prefixes = ownPrefixes(sourceId);
+    if (prefixes.isEmpty) return sourceId;
+    final m = RegExp(r'^([A-Z]+)(\d+)$').firstMatch(prefixes.first);
+    return m == null ? sourceId : '${m.group(1)}-${m.group(2)}';
   }
 
   /// `"Shanks (Parallel) (Manga)"` → `("Shanks", ["Parallel", "Manga"])`.

@@ -42,10 +42,16 @@ class CardMatcher {
     String code,
   ) async {
     if (gameId == 'onepiece') {
-      final setCode = onePieceSetCode(code);
-      final set = setCode == 'P'
+      // "OP14-001" belongs to the set whose own codes include OP14 — that
+      // can be a combined set like "OP14-EB04".
+      final prefix = code.split('-').first;
+      final set = prefix == 'P'
           ? sets.where((s) => s.id == OnePieceSource.promoSetId).firstOrNull
-          : sets.where((s) => s.code == setCode).firstOrNull;
+          : sets
+              .where((s) =>
+                  s.kind != SetKind.promo &&
+                  OnePieceSource.ownPrefixes(s.sourceId).contains(prefix))
+              .firstOrNull;
       final result = <CatalogCard>[];
       if (set != null) {
         final cards = await catalog.cards(set);

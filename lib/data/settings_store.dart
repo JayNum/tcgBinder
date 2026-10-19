@@ -15,6 +15,11 @@ class SettingsStore extends ChangeNotifier {
   String? _lastScanGame;
   int _addsSinceAd = 0;
 
+  /// The user's order of games (ids); games not listed follow in the
+  /// default order.
+  List<String> _gameOrder = [];
+  final Set<String> _hiddenGames = {};
+
   Future<void> load() async {
     final f = file;
     if (f == null || !f.existsSync()) return;
@@ -31,6 +36,10 @@ class SettingsStore extends ChangeNotifier {
       }
       _lastScanGame = json['lastScanGame'] as String?;
       _addsSinceAd = (json['addsSinceAd'] as num?)?.toInt() ?? 0;
+      final order = json['gameOrder'];
+      if (order is List) _gameOrder = order.whereType<String>().toList();
+      final hidden = json['hiddenGames'];
+      if (hidden is List) _hiddenGames.addAll(hidden.whereType<String>());
     } on Object catch (e) {
       debugPrint('Could not read settings: $e');
     }
@@ -38,6 +47,31 @@ class SettingsStore extends ChangeNotifier {
   }
 
   String? gameImage(String gameId) => _gameImages[gameId];
+
+  /// [allIds] in the user's order.
+  List<String> orderedGameIds(List<String> allIds) {
+    final ordered = [
+      for (final id in _gameOrder)
+        if (allIds.contains(id)) id,
+    ];
+    for (final id in allIds) {
+      if (!ordered.contains(id)) ordered.add(id);
+    }
+    return ordered;
+  }
+
+  void setGameOrder(List<String> ids) {
+    _gameOrder = List.of(ids);
+    _save();
+  }
+
+  bool isGameHidden(String gameId) => _hiddenGames.contains(gameId);
+
+  void setGameHidden(String gameId, bool hidden) {
+    final changed =
+        hidden ? _hiddenGames.add(gameId) : _hiddenGames.remove(gameId);
+    if (changed) _save();
+  }
 
   void setGameImage(String gameId, String? path) {
     final old = _gameImages[gameId];
@@ -85,6 +119,8 @@ class SettingsStore extends ChangeNotifier {
       'gameImages': _gameImages,
       'lastScanGame': _lastScanGame,
       'addsSinceAd': _addsSinceAd,
+      'gameOrder': _gameOrder,
+      'hiddenGames': _hiddenGames.toList(),
     });
     f.parent
         .create(recursive: true)

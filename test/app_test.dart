@@ -141,6 +141,49 @@ void main() {
     expect(romance, lessThan(battle));
   });
 
+  testWidgets('sets can be searched by name or code', (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(buildApp(CollectionStore()));
+    await tester.tap(find.text('One Piece'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'op16');
+    await tester.pumpAndSettle();
+    expect(find.text('The Time of Battle'), findsOneWidget);
+    expect(find.text('Romance Dawn'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'romance');
+    await tester.pumpAndSettle();
+    expect(find.text('Romance Dawn'), findsOneWidget);
+    expect(find.text('The Time of Battle'), findsNothing);
+  });
+
+  testWidgets('games can be hidden and moved', (tester) async {
+    usePhoneScreen(tester);
+    final settings = SettingsStore();
+    await tester.pumpWidget(TcgBinderApp(
+      collection: CollectionStore(),
+      settings: settings,
+      catalog: CatalogRepository(sources: const {}, cacheDir: null),
+      ads: AdsService(enabled: false),
+    ));
+
+    // Magic first, Pokémon hidden.
+    settings.setGameOrder(['magic', 'onepiece', 'pokemon', 'lorcana', 'riftbound']);
+    settings.setGameHidden('pokemon', true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pokémon'), findsNothing);
+    final magic = tester.getTopLeft(find.text('Magic'));
+    final onePiece = tester.getTopLeft(find.text('One Piece'));
+    expect(magic.dx, lessThan(onePiece.dx));
+
+    await tester.tap(find.text('Arrange'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pokémon'), findsOneWidget); // listed, switched off
+    expect(find.byType(Switch), findsNWidgets(5));
+  });
+
   test('price links search Cardmarket by code', () {
     final uri = PriceLinks.forMarketplace(
       Marketplace.cardmarket,

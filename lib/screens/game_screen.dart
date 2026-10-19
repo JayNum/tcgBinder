@@ -23,6 +23,25 @@ class _GameScreenState extends State<GameScreen> {
   SetKind? _kind;
   SetSort _sort = SetSort.newest;
   Future<List<CardSet>>? _loading;
+  String _query = '';
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// Matches the set name or code, ignoring case, dashes and spaces:
+  /// "op14", "OP-14" and "azure" all find "The Azure Sea's Seven".
+  bool _matches(CardSet set) {
+    if (_query.isEmpty) return true;
+    String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[\s\-_:.]'), '');
+    final q = norm(_query);
+    return norm(set.name).contains(q) ||
+        norm(set.code).contains(q) ||
+        norm(set.sourceId).contains(q);
+  }
 
   @override
   void didChangeDependencies() {
@@ -99,14 +118,50 @@ class _GameScreenState extends State<GameScreen> {
               .where((k) => allSets.any((s) => s.kind == k))
               .toList();
           final shown = sortSets(
-            allSets.where((s) => _kind == null || s.kind == _kind),
+            allSets.where((s) => (_kind == null || s.kind == _kind) && _matches(s)),
             _sort,
           );
 
           return RefreshIndicator(
             onRefresh: _refresh,
             child: CustomScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    child: TextField(
+                      controller: _search,
+                      onChanged: (value) => setState(() => _query = value.trim()),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'Search sets by name or code',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Clear search',
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  _search.clear();
+                                  setState(() => _query = '');
+                                },
+                              ),
+                        filled: true,
+                        fillColor: tokens.surface,
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: tokens.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: tokens.border),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 if (kinds.length > 1)
                   SliverToBoxAdapter(
                     child: SizedBox(
@@ -140,6 +195,19 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                 ),
+                if (shown.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        _query.isEmpty
+                            ? 'No sets of this kind.'
+                            : 'No set matches "$_query".',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: tokens.muted),
+                      ),
+                    ),
+                  ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   sliver: SliverList.separated(

@@ -44,6 +44,9 @@ class CatalogRepository extends ChangeNotifier {
   /// Set lists are refreshed when older than this.
   static const setListMaxAge = Duration(days: 3);
 
+  /// Bump when the way lists are read changes, so old copies are replaced.
+  static const cacheVersion = 2;
+
   final _sets = <String, List<CardSet>>{};
   final _cards = <String, List<CatalogCard>>{};
   final _loadingSets = <String, Future<List<CardSet>>>{};
@@ -58,6 +61,8 @@ class CatalogRepository extends ChangeNotifier {
       try {
         final json = jsonDecode(await file.readAsString());
         if (json is! Map) continue;
+        // Lists saved by an older app version are downloaded again.
+        if (json['v'] != cacheVersion) continue;
         final items = asMapList(json['items']);
         if (name.startsWith('sets_')) {
           final sets = items.map(CardSet.fromJson).toList();
@@ -221,7 +226,7 @@ class CatalogRepository extends ChangeNotifier {
     if (file == null) return;
     try {
       await file.parent.create(recursive: true);
-      await file.writeAsString(jsonEncode(json));
+      await file.writeAsString(jsonEncode({...json, 'v': cacheVersion}));
     } on Object catch (e) {
       debugPrint('Could not save $key: $e');
     }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -13,6 +14,8 @@ import 'services/ads.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // The app is made for holding the phone upright, like a binder page.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Collection, photos and settings: the user's data, kept in Documents.
   final docs = await getApplicationDocumentsDirectory();

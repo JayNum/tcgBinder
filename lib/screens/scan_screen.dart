@@ -46,8 +46,14 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final last = SettingsScope.of(context).lastScanGame;
-    if (last != null && games.any((g) => g.id == last)) _gameId = last;
+    final settings = SettingsScope.of(context);
+    final shown = arrangedGames(settings);
+    final last = settings.lastScanGame;
+    if (last != null && shown.any((g) => g.id == last)) {
+      _gameId = last;
+    } else if (shown.isNotEmpty && !shown.any((g) => g.id == _gameId)) {
+      _gameId = shown.first.id;
+    }
   }
 
   @override
@@ -243,7 +249,12 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 children: [
-                  for (final game in games)
+                  for (final game in arrangedGames(
+                    SettingsScope.of(context),
+                    includeHidden: true,
+                  ).where((g) =>
+                      g.id == _gameId ||
+                      !SettingsScope.of(context).isGameHidden(g.id)))
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
