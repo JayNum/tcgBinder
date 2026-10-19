@@ -45,9 +45,13 @@ class _BinderScreenState extends State<BinderScreen> {
     final store = CollectionScope.of(context);
     final game = gameById(widget.set.gameId);
     final cards = cardsInSet(widget.set.id);
-    final owned = store.ownedIn(cards);
+    final baseCards = cards.where((c) => !c.isVariant && !c.isReprint);
+    final extraCards = cards.where((c) => c.isVariant || c.isReprint);
+    final owned = store.ownedIn(baseCards);
+    final ownedExtras = store.ownedIn(extraCards);
+    final total = widget.set.printedTotal ?? baseCards.length;
     final pageCount = math.max(1, (cards.length / _perPage).ceil());
-    final percent = cards.isEmpty ? 0 : (owned * 100 / cards.length).round();
+    final percent = total == 0 ? 0 : (owned * 100 / total).round();
 
     return Scaffold(
       appBar: AppBar(
@@ -97,7 +101,12 @@ class _BinderScreenState extends State<BinderScreen> {
                                 color: tokens.text,
                               ),
                             ),
-                            TextSpan(text: ' of ${cards.length} collected'),
+                            TextSpan(text: ' of $total collected'),
+                            if (ownedExtras > 0)
+                              TextSpan(
+                                text: ' · $ownedExtras '
+                                    '${ownedExtras == 1 ? 'alt art' : 'alt arts'}',
+                              ),
                           ],
                         ),
                         style: TextStyle(fontSize: 12, color: tokens.muted),
@@ -117,7 +126,9 @@ class _BinderScreenState extends State<BinderScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(3),
                     child: LinearProgressIndicator(
-                      value: cards.isEmpty ? 0.0 : owned / cards.length,
+                      value: total == 0
+                          ? 0.0
+                          : (owned / total).clamp(0.0, 1.0).toDouble(),
                       minHeight: 6,
                       backgroundColor: tokens.pocketBorder,
                     ),
@@ -125,6 +136,40 @@ class _BinderScreenState extends State<BinderScreen> {
                 ],
               ),
             ),
+            if (cards.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.collections_bookmark_outlined,
+                          size: 48,
+                          color: tokens.labelMissing,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'This binder is empty',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'The card list for this set arrives with the full '
+                          'catalog. Then every card gets its pocket here.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: tokens.muted, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
             Expanded(
               child: PageView.builder(
                 controller: _controller,

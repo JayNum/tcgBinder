@@ -7,7 +7,9 @@ import '../models/catalog.dart';
 import '../models/collection.dart';
 import '../services/price_links.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ad_banner.dart';
 import '../widgets/card_photo.dart';
+import '../widgets/pocket.dart';
 
 class CardDetailScreen extends StatelessWidget {
   const CardDetailScreen({super.key, required this.card, required this.set});
@@ -36,12 +38,19 @@ class CardDetailScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             Text(
-              '${card.displayNumber(game, set)} · ${set.name} · ${game.name}',
+              [
+                card.displayNumber(game, set),
+                if (card.variant != null) card.variant!,
+                card.isReprint ? 'pulled from ${set.code}' : set.name,
+              ].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: tokens.muted),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: const SafeArea(child: AdBannerPlaceholder()),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -59,20 +68,24 @@ class CardDetailScreen extends StatelessWidget {
                     icon: const Icon(Icons.photo_camera_outlined, size: 18),
                     label: Text(entry.hasPhoto ? 'Retake photo' : 'Add photo'),
                   ),
-                Chip(
-                  label: Text(card.rarity),
-                  backgroundColor: tokens.accentSoft,
-                  labelStyle: TextStyle(
-                    color: tokens.accentSoftText,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
+                if (card.variant != null)
+                  VariantTag(label: card.variant!, large: true),
+                if (card.rarity.isNotEmpty)
+                  Chip(
+                    label: Text(card.rarity),
+                    backgroundColor: tokens.accentSoft,
+                    labelStyle: TextStyle(
+                      color: tokens.accentSoftText,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                    side: BorderSide.none,
                   ),
-                  side: BorderSide.none,
-                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
+          _VersionsSection(card: card),
           if (entry == null)
             _NotOwned(onAdd: () => store.add(card.id))
           else
@@ -157,6 +170,200 @@ class CardDetailScreen extends StatelessWidget {
         const SnackBar(content: Text('Could not open the browser.')),
       );
     }
+  }
+}
+
+/// "3 versions of this card": every printing that shares this card's code,
+/// with the set it is pulled from and whether the user owns it.
+class _VersionsSection extends StatefulWidget {
+  const _VersionsSection({required this.card});
+
+  final CatalogCard card;
+
+  @override
+  State<_VersionsSection> createState() => _VersionsSectionState();
+}
+
+class _VersionsSectionState extends State<_VersionsSection> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final versions = versionsOf(widget.card);
+    if (versions.length < 2) return const SizedBox.shrink();
+
+    final tokens = context.binder;
+    final store = CollectionScope.of(context);
+    final owned = versions.where((v) => store.owns(v.id)).length;
+    final missing = versions.length - owned;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: _Surface(
+        child: Column(
+          children: [
+            ListTile(
+              onTap: () => setState(() => _open = !_open),
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: tokens.accentSoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.filter_none, size: 18, color: context.accent),
+              ),
+              title: Text(
+                '${versions.length} versions of this card',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                missing == 0
+                    ? 'You have all of them'
+                    : 'You have $owned · $missing missing',
+                style: TextStyle(fontSize: 12, color: tokens.muted),
+              ),
+              trailing: AnimatedRotation(
+                turns: _open ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(Icons.expand_more, color: tokens.muted),
+              ),
+            ),
+            if (_open) ...[
+              Divider(height: 1, color: tokens.divider),
+              for (final version in versions)
+                _VersionRow(
+                  version: version,
+                  current: version.id == widget.card.id,
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                child: Text(
+                  'Each version sits in the binder of the set it comes out '
+                  'of. Tap a version to open it or add it.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: tokens.muted,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VersionRow extends StatelessWidget {
+  const _VersionRow({required this.version, required this.current});
+
+  final CatalogCard version;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.binder;
+    final store = CollectionScope.of(context);
+    final entry = store.entryFor(version.id);
+    final set = setById(version.setId);
+    final game = gameById(set.gameId);
+
+    return Material(
+      color: current ? tokens.accentSoft.withValues(alpha: 0.5) : Colors.transparent,
+      child: InkWell(
+        onTap: current
+            ? null
+            : () => Navigator.of(context).pushReplacement(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CardDetailScreen(card: version, set: set),
+                  ),
+                ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 14, 10),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 38,
+                child: AspectRatio(
+                  aspectRatio: 63 / 88,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: tokens.pocket,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: tokens.pocketBorder),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: entry != null && entry.hasPhoto
+                          ? CardPhoto(entry: entry, scale: 0.5)
+                          : const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            version.displayNumber(game, set),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: numberStyle(color: tokens.text, size: 13),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        VariantTag(label: version.variant ?? 'Base', large: true),
+                        if (current) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            'This card',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: context.accent,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'In ${set.code} · ${set.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: tokens.muted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: entry != null ? tokens.successSoft : tokens.pocket,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  entry != null ? 'Owned ×${entry.quantity}' : 'Missing',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: entry != null ? tokens.success : tokens.muted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

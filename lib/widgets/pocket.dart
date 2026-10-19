@@ -28,9 +28,12 @@ class Pocket extends StatelessWidget {
     final labelColor = owned ? tokens.text : tokens.labelMissing;
     final number = card.displayNumber(gameById(set.gameId), set);
 
+    final variant = card.variant;
+
     return Semantics(
       button: true,
-      label: '$number ${card.name}, ${owned ? 'owned' : 'missing'}',
+      label: '$number ${variant ?? ''} ${card.name}, '
+          '${owned ? 'owned' : 'missing'}',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
@@ -41,10 +44,21 @@ class Pocket extends StatelessWidget {
             children: [
               SizedBox(
                 height: 14,
-                child: Text(
-                  number,
-                  maxLines: 1,
-                  style: numberStyle(color: labelColor),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        number,
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                        style: numberStyle(color: labelColor),
+                      ),
+                    ),
+                    if (variant != null) ...[
+                      const SizedBox(width: 3),
+                      VariantTag(label: variant),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 4),
@@ -123,6 +137,37 @@ class Pocket extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Small label for alt arts and parallels, e.g. `P1`.
+class VariantTag extends StatelessWidget {
+  const VariantTag({super.key, required this.label, this.large = false});
+
+  final String label;
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: large ? 6 : 4),
+      height: large ? 18 : 14,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF3A2E10) : const Color(0xFFFFF1CC),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: large ? 11 : 9,
+          height: 1,
+          fontWeight: FontWeight.w800,
+          color: dark ? const Color(0xFFF3C969) : const Color(0xFF7A4B00),
+        ),
       ),
     );
   }

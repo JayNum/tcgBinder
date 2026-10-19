@@ -44,7 +44,10 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     _Stat(value: '${store.totalCards}', label: 'Cards'),
                     const SizedBox(width: 8),
-                    _Stat(value: '${sets.length}', label: 'Binders'),
+                    _Stat(
+                      value: '${sets.where((s) => store.ownedIn(cardsInSet(s.id)) > 0).length}',
+                      label: 'Binders',
+                    ),
                     const SizedBox(width: 8),
                     _Stat(value: '${games.length}', label: 'Games'),
                   ],

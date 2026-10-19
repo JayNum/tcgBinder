@@ -11,15 +11,22 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  testWidgets('shelf opens the binder and a card', (tester) async {
+  testWidgets('home → game → binder → card', (tester) async {
     usePhoneScreen(tester);
     await tester.pumpWidget(TcgBinderApp(store: CollectionStore.demo()));
 
-    expect(find.text('My binders'), findsOneWidget);
+    expect(find.text('My collection'), findsOneWidget);
+    expect(find.text('One Piece'), findsOneWidget);
+    expect(find.text('Riftbound'), findsOneWidget);
+
+    await tester.tap(find.text('Pokémon'));
+    await tester.pumpAndSettle();
+    expect(find.text('Team Rocket'), findsOneWidget);
+
     await tester.tap(find.text('Base Set'));
     await tester.pumpAndSettle();
-
     expect(find.text('004/102'), findsOneWidget);
+
     final charizard = find.text('Charizard');
     await tester.ensureVisible(charizard);
     await tester.tap(charizard);
@@ -27,6 +34,34 @@ void main() {
 
     expect(find.text('YOUR COPY'), findsOneWidget);
     expect(find.text('Near Mint'), findsOneWidget);
+  });
+
+  testWidgets('sets can be sorted by name', (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(TcgBinderApp(store: CollectionStore.demo()));
+
+    await tester.tap(find.text('One Piece'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Newest first'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Sort sets'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Name A–Z').last);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Name A–Z'), findsOneWidget);
+    expect(find.text('500 Years in the Future'), findsOneWidget);
+  });
+
+  testWidgets('empty binders say so', (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(TcgBinderApp(store: CollectionStore.demo()));
+
+    await tester.tap(find.text('Riftbound'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vendetta'));
+    await tester.pumpAndSettle();
+    expect(find.text('This binder is empty'), findsOneWidget);
   });
 
   testWidgets('settings tab shows backup options', (tester) async {

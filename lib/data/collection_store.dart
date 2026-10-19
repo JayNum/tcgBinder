@@ -18,8 +18,15 @@ class CollectionStore extends ChangeNotifier {
   int get totalCards =>
       _entries.values.fold(0, (sum, e) => sum + e.quantity);
 
+  /// How many different cards of [cards] the user owns.
   int ownedIn(Iterable<CatalogCard> cards) =>
       cards.where((c) => _entries.containsKey(c.id)).length;
+
+  /// How many physical cards of [cards] the user owns, counting copies.
+  int copiesIn(Iterable<CatalogCard> cards) => cards.fold(
+        0,
+        (sum, c) => sum + (_entries[c.id]?.quantity ?? 0),
+      );
 
   void add(String cardId) {
     _entries.putIfAbsent(cardId, () => CollectionEntry(cardId: cardId));
@@ -68,6 +75,11 @@ class CollectionStore extends ChangeNotifier {
       e('onepiece-op16-15', color: red),
       e('onepiece-op16-22', color: green),
       e('onepiece-op16-26'),
+      // One Piece OP17: Kaido, one of his parallels and two reprints
+      e('onepiece-op17-62', color: purple),
+      e('onepiece-op17-op17-62-p1', color: navy),
+      e('onepiece-op17-st31-4-p1', color: red),
+      e('onepiece-op17-op13-28-p2', color: red),
       // Magic Foundations
       e('magic-fdn-1', color: grey),
       e('magic-fdn-2', color: yellow),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'home_screen.dart';
 import 'scan_screen.dart';
 import 'settings_screen.dart';
-import 'shelf_screen.dart';
 
 /// Bottom bar with Binders, a raised Scan button, and Settings.
 class HomeShell extends StatefulWidget {
@@ -21,7 +21,7 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: IndexedStack(
         index: _tab,
-        children: const [ShelfScreen(), SettingsScreen()],
+        children: const [HomeScreen(), SettingsScreen()],
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Scan cards',

@@ -42,37 +42,76 @@ void main() {
   });
 
   test('Cardmarket searches One Piece by card code only', () {
-    const op16 = CardSet(
-      id: 'op16',
+    final testSet = CardSet(
+      id: 'op16-test',
       gameId: 'onepiece',
       code: 'OP16',
       name: 'Test Set',
-      releaseYear: 2026,
+      released: DateTime(2026, 6, 12),
       printedTotal: 119,
     );
     const card = CatalogCard(
-      id: 'op16-1',
-      setId: 'op16',
+      id: 'op16-test-1',
+      setId: 'op16-test',
       number: 1,
       name: 'Test Leader',
       rarity: 'Leader',
     );
     final onePiece = gameById('onepiece');
 
-    expect(card.code(onePiece, op16), 'OP16-001');
-    expect(card.displayNumber(onePiece, op16), 'OP16-001');
+    expect(card.code(onePiece, testSet), 'OP16-001');
+    expect(card.displayNumber(onePiece, testSet), 'OP16-001');
     final uri = PriceLinks.forMarketplace(
       Marketplace.cardmarket,
       game: onePiece,
       card: card,
-      set: op16,
+      set: testSet,
     );
     expect(uri.path, '/en/OnePiece/Products/Search');
     expect(uri.queryParameters['searchString'], 'OP16-001');
     expect(
-      PriceLinks.ebayQuery(game: onePiece, card: card, set: op16),
+      PriceLinks.ebayQuery(game: onePiece, card: card, set: testSet),
       'OP16-001 Test Leader',
     );
+  });
+
+  test('reprints keep their old code and sit at the end of the new binder',
+      () {
+    final onePiece = gameById('onepiece');
+    final cards = cardsInSet(op17.id);
+    final shanks = cards.firstWhere((c) => c.name == 'Shanks');
+    expect(shanks.displayNumber(onePiece, op17), 'OP13-028');
+    expect(shanks.variant, 'P2');
+    expect(cards.first.displayNumber(onePiece, op17), 'OP17-062');
+    expect(cards.last.isReprint, isTrue);
+    expect(
+      PriceLinks.cardmarketQuery(game: onePiece, card: shanks, set: op17),
+      'OP13-028',
+    );
+  });
+
+  test('versions are found across sets, oldest first', () {
+    final shanksP2 = cardsInSet(op17.id).firstWhere((c) => c.name == 'Shanks');
+    final versions = versionsOf(shanksP2);
+    expect(versions.map((v) => v.setId), [op13.id, op17.id]);
+    expect(versions.first.variant, isNull);
+
+    final kaido = cardsInSet(op17.id).first;
+    expect(versionsOf(kaido).length, 4);
+
+    // A card without alt arts has only itself.
+    final charizardVersions = versionsOf(charizard);
+    expect(charizardVersions, [charizard]);
+  });
+
+  test('sets sort by release date and by name', () {
+    final onePieceSets = setsOfGame('onepiece');
+    final newest = sortSets(onePieceSets, SetSort.newest);
+    expect(newest.first.code, 'OP17');
+    final oldest = sortSets(onePieceSets, SetSort.oldest);
+    expect(oldest.first.code, 'OP01');
+    final byName = sortSets(onePieceSets, SetSort.name);
+    expect(byName.first.name, '500 Years in the Future');
   });
 
   test('Lorcana searches by name and version, links straight to TCGplayer', () {
@@ -107,12 +146,12 @@ void main() {
   });
 
   test('games without a short code search Cardmarket by card name', () {
-    const set = CardSet(
+    final set = CardSet(
       id: 'm1',
       gameId: 'magic',
       code: 'M1',
       name: 'Some Set',
-      releaseYear: 2026,
+      released: DateTime(2026),
       printedTotal: 300,
     );
     const card = CatalogCard(
