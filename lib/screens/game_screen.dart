@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../catalog/catalog_scope.dart';
 import '../data/collection_store.dart';
-import '../data/sample_catalog.dart';
 import '../models/catalog.dart';
+import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
-import '../widgets/ad_banner.dart';
 import 'binder_screen.dart';
 
 /// All sets of one game, each its own binder. Filterable and sortable.
@@ -22,21 +22,26 @@ class _GameScreenState extends State<GameScreen> {
   /// Null shows every kind of set.
   SetKind? _kind;
   SetSort _sort = SetSort.newest;
+  Future<List<CardSet>>? _loading;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loading ??= CatalogScope.of(context).sets(widget.game.id);
+  }
+
+  Future<void> _refresh() async {
+    final future = CatalogScope.of(context).sets(widget.game.id, refresh: true);
+    setState(() => _loading = future);
+    await future.catchError((Object _) => const <CardSet>[]);
+  }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
-    final allSets = setsOfGame(widget.game.id);
-    final kinds = SetKind.values
-        .where((k) => allSets.any((s) => s.kind == k))
-        .toList();
-    final shown = sortSets(
-      allSets.where((s) => _kind == null || s.kind == _kind),
-      _sort,
-    );
-    final started =
-        allSets.where((s) => store.ownedIn(cardsInSet(s.id)) > 0).length;
+    final catalog = CatalogScope.of(context);
+    final started = store.startedSets(gameId: widget.game.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -48,7 +53,8 @@ class _GameScreenState extends State<GameScreen> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             Text(
-              '$started of ${allSets.length} binders started',
+              '${store.copiesInGame(widget.game.id)} cards · '
+              '${started.length} ${started.length == 1 ? 'binder' : 'binders'} started',
               style: TextStyle(fontSize: 12, color: tokens.muted),
             ),
           ],
@@ -70,53 +76,86 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (kinds.length > 1)
-            SizedBox(
-              height: 52,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                children: [
-                  _FilterChip(
-                    label: 'All',
-                    selected: _kind == null,
-                    onSelected: () => setState(() => _kind = null),
-                  ),
-                  for (final kind in kinds)
-                    _FilterChip(
-                      label: kind.label,
-                      selected: _kind == kind,
-                      onSelected: () => setState(() => _kind = kind),
+      bottomNavigationBar: const BannerAdView(),
+      body: FutureBuilder<List<CardSet>>(
+        future: _loading,
+        builder: (context, snapshot) {
+          final allSets = snapshot.data ?? catalog.cachedSets(widget.game.id);
+          if (allSets.isEmpty) {
+            if (snapshot.hasError) {
+              return _Message(
+                icon: Icons.cloud_off_outlined,
+                title: 'Could not load the sets',
+                text: 'Check your internet connection. The set list comes '
+                    'from ${widget.game.dataSource}.',
+                action: 'Try again',
+                onAction: _refresh,
+              );
+            }
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final kinds = SetKind.values
+              .where((k) => allSets.any((s) => s.kind == k))
+              .toList();
+          final shown = sortSets(
+            allSets.where((s) => _kind == null || s.kind == _kind),
+            _sort,
+          );
+
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: CustomScrollView(
+              slivers: [
+                if (kinds.length > 1)
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 52,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        children: [
+                          _FilterChip(
+                            label: 'All',
+                            selected: _kind == null,
+                            onSelected: () => setState(() => _kind = null),
+                          ),
+                          for (final kind in kinds)
+                            _FilterChip(
+                              label: kind.label,
+                              selected: _kind == kind,
+                              onSelected: () => setState(() => _kind = kind),
+                            ),
+                        ],
+                      ),
                     ),
-                ],
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-            child: Row(
-              children: [
-                Text(
-                  '${shown.length} ${shown.length == 1 ? 'set' : 'sets'} · ${_sort.label}',
-                  style: TextStyle(fontSize: 12, color: tokens.muted),
+                  ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+                    child: Text(
+                      '${shown.length} ${shown.length == 1 ? 'set' : 'sets'} · '
+                      '${_sort.label}',
+                      style: TextStyle(fontSize: 12, color: tokens.muted),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  sliver: SliverList.separated(
+                    itemCount: shown.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (context, i) => _SetRow(
+                      game: widget.game,
+                      set: shown[i],
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: shown.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, i) => _SetRow(
-                game: widget.game,
-                set: shown[i],
-              ),
-            ),
-          ),
-          const AdBannerPlaceholder(),
-        ],
+          );
+        },
       ),
     );
   }
@@ -156,12 +195,24 @@ class _SetRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
-    final cards = cardsInSet(set.id);
-    final owned = store.ownedIn(cards);
-    final total = set.printedTotal ?? cards.length;
-    final started = owned > 0;
+    final catalog = CatalogScope.of(context);
+    final cards = catalog.cachedCards(set.id);
+    final ownedCount = store.entries.where((e) => e.setId == set.id).length;
+    final started = ownedCount > 0;
+
+    // Progress needs the card list; before it's downloaded we show the
+    // count of cards you have.
+    int? owned;
+    int? total;
+    if (cards != null) {
+      final base = cards.where((c) => c.isBase);
+      owned = store.ownedIn(base);
+      total = set.printedTotal ?? base.length;
+    }
+
     final cover = started ? gameColor(game.id) : tokens.pocketBorder;
     final coverText = started ? Colors.white : tokens.muted;
+    final year = set.releaseYear;
 
     return Material(
       color: tokens.surface,
@@ -189,7 +240,7 @@ class _SetRow extends StatelessWidget {
                   ),
                 ),
                 alignment: Alignment.bottomCenter,
-                padding: const EdgeInsets.only(bottom: 6, left: 5),
+                padding: const EdgeInsets.only(bottom: 6, left: 5, right: 2),
                 child: Text(
                   set.code,
                   maxLines: 1,
@@ -204,7 +255,7 @@ class _SetRow extends StatelessWidget {
                   children: [
                     Text(
                       set.name,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14,
@@ -213,20 +264,21 @@ class _SetRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${set.code} · ${set.releaseYear} · ${set.kind.label}',
+                      [set.code, if (year != null) '$year', set.kind.label]
+                          .join(' · '),
                       style: TextStyle(fontSize: 12, color: tokens.muted),
                     ),
                     const SizedBox(height: 6),
-                    if (started)
+                    if (started && owned != null && total != null && total > 0)
                       Row(
                         children: [
                           Expanded(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(3),
                               child: LinearProgressIndicator(
-                                value: total == 0
-                                    ? 0.0
-                                    : (owned / total).clamp(0.0, 1.0).toDouble(),
+                                value: (owned / total)
+                                    .clamp(0.0, 1.0)
+                                    .toDouble(),
                                 minHeight: 5,
                                 backgroundColor: tokens.pocketBorder,
                               ),
@@ -245,11 +297,13 @@ class _SetRow extends StatelessWidget {
                       )
                     else
                       Text(
-                        'Empty binder',
+                        started
+                            ? '$ownedCount ${ownedCount == 1 ? 'card' : 'cards'}'
+                            : 'Empty binder',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: tokens.labelMissing,
+                          color: started ? context.accent : tokens.labelMissing,
                         ),
                       ),
                   ],
@@ -258,6 +312,54 @@ class _SetRow extends StatelessWidget {
               Icon(Icons.chevron_right, color: tokens.muted),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Message extends StatelessWidget {
+  const _Message({
+    required this.icon,
+    required this.title,
+    required this.text,
+    this.action,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String text;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.binder;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: tokens.labelMissing),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: tokens.muted, height: 1.4),
+            ),
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onAction, child: Text(action!)),
+            ],
+          ],
         ),
       ),
     );

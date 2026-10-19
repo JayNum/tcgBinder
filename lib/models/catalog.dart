@@ -4,14 +4,14 @@ library;
 
 /// How a game prints its card code, which is what collectors search for.
 enum CardCodeStyle {
-  /// Set code, dash, 3-digit number: `OP16-001`, `OGN-296`.
+  /// Set code, dash, number: `OP16-001`, `OGN-011`.
   dashed,
 
-  /// Set code and plain number, as in Cardmarket's Pokémon names: `BS 4`.
-  spaced,
+  /// Number over set total: `4/102`.
+  slashed,
 
-  /// No short code people search by (Magic, Lorcana): use name + set.
-  none,
+  /// Just a collector number: Magic `0001`, Lorcana `#1`.
+  number,
 }
 
 class Game {
@@ -19,7 +19,8 @@ class Game {
     required this.id,
     required this.name,
     required this.cardmarketSlug,
-    this.codeStyle = CardCodeStyle.none,
+    required this.codeStyle,
+    required this.dataSource,
     this.hasEditions = false,
   });
 
@@ -28,8 +29,10 @@ class Game {
 
   /// Path segment Cardmarket uses for this game, e.g. `Pokemon`.
   final String cardmarketSlug;
-
   final CardCodeStyle codeStyle;
+
+  /// Where the card lists come from, shown in the app.
+  final String dataSource;
 
   /// Whether cards come in editions (1st Edition / Shadowless / Unlimited).
   final bool hasEditions;
@@ -44,50 +47,90 @@ enum SetKind {
 
   const SetKind(this.label);
   final String label;
+
+  static SetKind byName(String? name) =>
+      SetKind.values.firstWhere((k) => k.name == name, orElse: () => booster);
 }
 
 class CardSet {
   const CardSet({
     required this.id,
     required this.gameId,
+    required this.sourceId,
     required this.code,
     required this.name,
-    required this.released,
+    required this.order,
+    this.released,
     this.kind = SetKind.booster,
     this.printedTotal,
   });
 
+  /// Our id, unique across games, e.g. `pokemon-base1`.
   final String id;
   final String gameId;
 
-  /// The code printed on the cards, e.g. `OP16` or `BS`.
+  /// The id the card database uses for this set, e.g. `base1` or `OP-16`.
+  final String sourceId;
+
+  /// The code collectors know the set by, e.g. `OP-16`, `BS`, `FDN`.
   final String code;
   final String name;
 
-  /// Release date, used for sorting. Where only the year is known we use
-  /// the start of that year.
-  final DateTime released;
+  /// Release date if known.
+  final DateTime? released;
+
+  /// Position in the source's list, used when no date is known.
+  final int order;
   final SetKind kind;
 
-  /// The total printed on the cards, e.g. 102 in `004/102`. Null when the
-  /// cards only print their own number (modern Magic: `0001`).
+  /// The total printed on the cards, e.g. 102 in `4/102`.
   final int? printedTotal;
 
-  int get releaseYear => released.year;
+  int? get releaseYear => released?.year;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'gameId': gameId,
+        'sourceId': sourceId,
+        'code': code,
+        'name': name,
+        'order': order,
+        'released': released?.toIso8601String(),
+        'kind': kind.name,
+        'printedTotal': printedTotal,
+      };
+
+  factory CardSet.fromJson(Map<String, Object?> json) => CardSet(
+        id: json['id']! as String,
+        gameId: json['gameId']! as String,
+        sourceId: json['sourceId']! as String,
+        code: json['code']! as String,
+        name: json['name']! as String,
+        order: (json['order'] as num?)?.toInt() ?? 0,
+        released: json['released'] == null
+            ? null
+            : DateTime.tryParse(json['released']! as String),
+        kind: SetKind.byName(json['kind'] as String?),
+        printedTotal: (json['printedTotal'] as num?)?.toInt(),
+      );
 }
 
 /// One printing of a card. Alt arts, parallels and reprints are separate
-/// printings that share a code with their base card.
+/// printings; all printings of a card share a [versionKey].
 class CatalogCard {
   const CatalogCard({
     required this.id,
     required this.setId,
-    required this.number,
+    required this.gameId,
+    required this.code,
+    required this.sortNumber,
     required this.name,
-    required this.rarity,
+    required this.versionKey,
+    required this.cardmarketQuery,
+    this.rarity = '',
     this.subtitle,
     this.variant,
-    this.originSetCode,
+    this.reprint = false,
     this.cardmarketUrl,
     this.tcgplayerUrl,
   });
@@ -96,7 +139,14 @@ class CatalogCard {
 
   /// The set this printing is pulled from, i.e. the binder it belongs to.
   final String setId;
-  final int number;
+  final String gameId;
+
+  /// What's printed on the card and shown above its pocket:
+  /// `OP16-001`, `4/102`, `0001`.
+  final String code;
+
+  /// Numeric part of the collector number, for ordering the binder.
+  final int sortNumber;
   final String name;
   final String rarity;
 
@@ -106,12 +156,15 @@ class CatalogCard {
   /// Version label for alt arts and parallels, e.g. `P1`. Null = base card.
   final String? variant;
 
-  /// For reprints that come in a newer set but keep their old code, the
-  /// set code printed on the card (e.g. `OP13` for OP13-028 in OP-17 packs).
-  final String? originSetCode;
+  /// A card from an older set that comes in this set's boosters with its
+  /// old code. Reprints go at the end of the binder.
+  final bool reprint;
 
-  /// Direct product pages, when the catalog source provides them
-  /// (Scryfall, pokemontcg.io, Lorcast do). Otherwise we fall back to a search.
+  /// Equal for all printings of the same card.
+  final String versionKey;
+
+  /// What to search for on Cardmarket when there's no direct link.
+  final String cardmarketQuery;
   final String? cardmarketUrl;
   final String? tcgplayerUrl;
 
@@ -119,36 +172,58 @@ class CatalogCard {
 
   bool get isVariant => variant != null;
 
-  /// True for reprints from another set (they go at the end of a binder).
-  bool get isReprint => originSetCode != null;
+  /// Counts towards "x of y collected" (not an alt art or reprint).
+  bool get isBase => variant == null && !reprint;
 
-  String printedNumber(CardSet set) {
-    final total = set.printedTotal;
-    if (total == null) return number.toString().padLeft(4, '0');
-    final width = total.toString().length.clamp(3, 4);
-    return '${number.toString().padLeft(width, '0')}/$total';
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'setId': setId,
+        'gameId': gameId,
+        'code': code,
+        'sortNumber': sortNumber,
+        'name': name,
+        'rarity': rarity,
+        'subtitle': subtitle,
+        'variant': variant,
+        'reprint': reprint,
+        'versionKey': versionKey,
+        'cardmarketQuery': cardmarketQuery,
+        'cardmarketUrl': cardmarketUrl,
+        'tcgplayerUrl': tcgplayerUrl,
+      };
+
+  factory CatalogCard.fromJson(Map<String, Object?> json) => CatalogCard(
+        id: json['id']! as String,
+        setId: json['setId']! as String,
+        gameId: json['gameId']! as String,
+        code: json['code']! as String,
+        sortNumber: (json['sortNumber'] as num?)?.toInt() ?? 0,
+        name: json['name']! as String,
+        rarity: json['rarity'] as String? ?? '',
+        subtitle: json['subtitle'] as String?,
+        variant: json['variant'] as String?,
+        reprint: json['reprint'] as bool? ?? false,
+        versionKey: json['versionKey']! as String,
+        cardmarketQuery: json['cardmarketQuery']! as String,
+        cardmarketUrl: json['cardmarketUrl'] as String?,
+        tcgplayerUrl: json['tcgplayerUrl'] as String?,
+      );
+}
+
+/// Binder order: the set's own cards by number (each followed by its alt
+/// arts), then reprints from other sets.
+int compareBinderOrder(CatalogCard a, CatalogCard b) {
+  final byReprint = (a.reprint ? 1 : 0).compareTo(b.reprint ? 1 : 0);
+  if (byReprint != 0) return byReprint;
+  if (a.reprint) {
+    final byCode = a.code.compareTo(b.code);
+    if (byCode != 0) return byCode;
   }
-
-  /// What's printed on the card and shown above its pocket:
-  /// `OP16-001` for One Piece / Riftbound, `004/102` for Pokémon and others.
-  String displayNumber(Game game, CardSet set) =>
-      game.codeStyle == CardCodeStyle.dashed
-          ? code(game, set)!
-          : printedNumber(set);
-
-  /// The card's code as collectors search for it, e.g. `OP16-001` or
-  /// `BS 4`. Null for games without a short code.
-  String? code(Game game, CardSet set) {
-    final setCode = originSetCode ?? set.code;
-    switch (game.codeStyle) {
-      case CardCodeStyle.dashed:
-        return '$setCode-${number.toString().padLeft(3, '0')}';
-      case CardCodeStyle.spaced:
-        return '$setCode $number';
-      case CardCodeStyle.none:
-        return null;
-    }
-  }
+  final byNumber = a.sortNumber.compareTo(b.sortNumber);
+  if (byNumber != 0) return byNumber;
+  final byCode = a.code.compareTo(b.code);
+  if (byCode != 0) return byCode;
+  return (a.variant ?? '').compareTo(b.variant ?? '');
 }
 
 /// How the list of sets is sorted.
@@ -163,13 +238,33 @@ enum SetSort {
 
 List<CardSet> sortSets(Iterable<CardSet> sets, SetSort sort) {
   final list = sets.toList();
+  // Sets without a date sort by their position in the source's list.
+  int byDate(CardSet a, CardSet b) {
+    final da = a.released, db = b.released;
+    if (da != null && db != null) {
+      final c = da.compareTo(db);
+      if (c != 0) return c;
+    } else if (da != null) {
+      return 1;
+    } else if (db != null) {
+      return -1;
+    }
+    return a.order.compareTo(b.order);
+  }
+
   switch (sort) {
     case SetSort.newest:
-      list.sort((a, b) => b.released.compareTo(a.released));
+      list.sort((a, b) => byDate(b, a));
     case SetSort.oldest:
-      list.sort((a, b) => a.released.compareTo(b.released));
+      list.sort(byDate);
     case SetSort.name:
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
   return list;
+}
+
+/// Leading digits of a collector number: `"007a"` → 7, `"TG01"` → 1.
+int parseSortNumber(String number) {
+  final match = RegExp(r'\d+').firstMatch(number);
+  return match == null ? 0 : int.parse(match.group(0)!);
 }

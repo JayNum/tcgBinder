@@ -1,103 +1,146 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 
 import '../models/catalog.dart';
 import '../models/collection.dart';
 
-/// Holds the user's collection. In-memory for now; the next step is
-/// persisting it in a local SQLite database (Drift) on the device.
+/// The user's collection, saved as a file on the phone. Nothing is sent
+/// anywhere.
 class CollectionStore extends ChangeNotifier {
-  CollectionStore([Map<String, CollectionEntry>? initial])
-      : _entries = {...?initial};
+  CollectionStore({this.file, this.photoDir});
 
-  final Map<String, CollectionEntry> _entries;
+  /// Where the collection is saved; null keeps it in memory (tests).
+  final File? file;
+
+  /// Where card photos are kept.
+  final Directory? photoDir;
+
+  final Map<String, CollectionEntry> _entries = {};
+
+  Future<void> load() async {
+    final f = file;
+    if (f == null || !f.existsSync()) return;
+    try {
+      final json = jsonDecode(await f.readAsString());
+      if (json is Map && json['entries'] is List) {
+        for (final item in json['entries'] as List) {
+          if (item is! Map) continue;
+          final entry = CollectionEntry.fromJson(item.cast<String, Object?>());
+          _entries[entry.cardId] = entry;
+        }
+      }
+    } on Object catch (e) {
+      debugPrint('Could not read the collection: $e');
+    }
+    notifyListeners();
+  }
+
+  Iterable<CollectionEntry> get entries => _entries.values;
 
   CollectionEntry? entryFor(String cardId) => _entries[cardId];
 
   bool owns(String cardId) => _entries.containsKey(cardId);
 
-  int get totalCards =>
-      _entries.values.fold(0, (sum, e) => sum + e.quantity);
+  /// Physical cards, counting copies.
+  int get totalCards => _entries.values.fold(0, (sum, e) => sum + e.quantity);
+
+  int copiesInGame(String gameId) => _entries.values
+      .where((e) => e.gameId == gameId)
+      .fold(0, (sum, e) => sum + e.quantity);
+
+  /// Binders (sets) with at least one card, optionally for one game.
+  Set<String> startedSets({String? gameId}) => {
+        for (final e in _entries.values)
+          if (gameId == null || e.gameId == gameId) e.setId,
+      };
 
   /// How many different cards of [cards] the user owns.
   int ownedIn(Iterable<CatalogCard> cards) =>
       cards.where((c) => _entries.containsKey(c.id)).length;
 
-  /// How many physical cards of [cards] the user owns, counting copies.
-  int copiesIn(Iterable<CatalogCard> cards) => cards.fold(
-        0,
-        (sum, c) => sum + (_entries[c.id]?.quantity ?? 0),
+  /// Adds one copy of [card]; keeps the existing photo unless [photoPath]
+  /// is given.
+  void addCopy(CatalogCard card, {String? photoPath}) {
+    final existing = _entries[card.id];
+    if (existing == null) {
+      _entries[card.id] = CollectionEntry(
+        cardId: card.id,
+        setId: card.setId,
+        gameId: card.gameId,
+        addedAt: DateTime.now(),
+        photoPath: photoPath,
       );
-
-  void add(String cardId) {
-    _entries.putIfAbsent(cardId, () => CollectionEntry(cardId: cardId));
-    notifyListeners();
+    } else {
+      _entries[card.id] = existing.copyWith(
+        quantity: existing.quantity + 1,
+        photoPath: photoPath ?? existing.photoPath,
+      );
+    }
+    _changed();
   }
 
   void update(CollectionEntry entry) {
     _entries[entry.cardId] = entry;
-    notifyListeners();
+    _changed();
+  }
+
+  /// Sets a new photo and deletes the old file.
+  void setPhoto(String cardId, String photoPath) {
+    final existing = _entries[cardId];
+    if (existing == null) return;
+    final old = existing.photoPath;
+    _entries[cardId] = existing.copyWith(photoPath: photoPath);
+    if (old != null && old != photoPath) _deleteFile(old);
+    _changed();
   }
 
   void remove(String cardId) {
-    _entries.remove(cardId);
-    notifyListeners();
+    final removed = _entries.remove(cardId);
+    final photo = removed?.photoPath;
+    if (photo != null) _deleteFile(photo);
+    _changed();
   }
 
-  /// Sample collection matching the mockups.
-  factory CollectionStore.demo() {
-    const purple = Color(0xFF8E6BB8);
-    const blue = Color(0xFF4C7FC0);
-    const red = Color(0xFFD2603A);
-    const brown = Color(0xFFA6784A);
-    const grey = Color(0xFF8C9198);
-    const green = Color(0xFF5E9E6A);
-    const yellow = Color(0xFFC9A227);
-    const navy = Color(0xFF3B4A7A);
+  /// A new, unique path for a card photo.
+  String newPhotoPath() {
+    final dir = photoDir ?? Directory.systemTemp;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    return '${dir.path}${Platform.pathSeparator}card_$stamp.jpg';
+  }
 
-    CollectionEntry e(String id, {Color? color, int quantity = 1}) =>
-        CollectionEntry(cardId: id, demoColor: color, quantity: quantity);
+  void _deleteFile(String path) {
+    try {
+      final f = File(path);
+      if (f.existsSync()) f.deleteSync();
+    } on Object catch (e) {
+      debugPrint('Could not delete $path: $e');
+    }
+  }
 
-    final entries = [
-      // Pokémon Base Set
-      e('pokemon-base1-1', color: purple),
-      e('pokemon-base1-2', color: blue),
-      e('pokemon-base1-4', color: red, quantity: 2),
-      e('pokemon-base1-7', color: brown),
-      e('pokemon-base1-8'),
-      e('pokemon-base1-9', color: grey),
-      e('pokemon-base1-10', color: purple),
-      e('pokemon-base1-15', color: green),
-      // One Piece OP16
-      e('onepiece-op16-1', color: red),
-      e('onepiece-op16-3', color: red),
-      e('onepiece-op16-11', color: red, quantity: 3),
-      e('onepiece-op16-14', color: red),
-      e('onepiece-op16-15', color: red),
-      e('onepiece-op16-22', color: green),
-      e('onepiece-op16-26'),
-      // One Piece OP17: Kaido, one of his parallels and two reprints
-      e('onepiece-op17-62', color: purple),
-      e('onepiece-op17-op17-62-p1', color: navy),
-      e('onepiece-op17-st31-4-p1', color: red),
-      e('onepiece-op17-op13-28-p2', color: red),
-      // Magic Foundations
-      e('magic-fdn-1', color: grey),
-      e('magic-fdn-2', color: yellow),
-      e('magic-fdn-9', color: yellow, quantity: 4),
-      e('magic-fdn-17', color: yellow),
-      // Lorcana The First Chapter
-      e('lorcana-1-1', color: yellow),
-      e('lorcana-1-12', color: yellow, quantity: 2),
-      e('lorcana-1-18', color: yellow),
-      e('lorcana-1-21', color: yellow),
-      e('lorcana-1-23'),
-      // Riftbound Origins
-      e('riftbound-ogn-1', color: red),
-      e('riftbound-ogn-13', color: navy, quantity: 3),
-      e('riftbound-ogn-15', color: red),
-      e('riftbound-ogn-25', color: red),
-    ];
-    return CollectionStore({for (final entry in entries) entry.cardId: entry});
+  Future<void> _saving = Future.value();
+
+  void _changed() {
+    notifyListeners();
+    final f = file;
+    if (f == null) return;
+    final json = jsonEncode({
+      'version': 1,
+      'entries': _entries.values.map((e) => e.toJson()).toList(),
+    });
+    // Write one save after the other, to a temp file first, so a crash
+    // never leaves a half-written collection.
+    _saving = _saving.then((_) async {
+      try {
+        await f.parent.create(recursive: true);
+        final tmp = File('${f.path}.tmp');
+        await tmp.writeAsString(json, flush: true);
+        await tmp.rename(f.path);
+      } on Object catch (e) {
+        debugPrint('Could not save the collection: $e');
+      }
+    });
   }
 }
 

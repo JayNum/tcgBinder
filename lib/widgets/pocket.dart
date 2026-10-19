@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../data/sample_catalog.dart';
 import '../models/catalog.dart';
 import '../models/collection.dart';
 import '../theme/app_theme.dart';
 import 'card_photo.dart';
 
-/// One binder pocket: set number above, the sleeve, card name below.
+/// One binder pocket: card code above, the sleeve, card name below.
 class Pocket extends StatelessWidget {
   const Pocket({
     super.key,
     required this.card,
-    required this.set,
     this.entry,
     this.onTap,
   });
 
   final CatalogCard card;
-  final CardSet set;
   final CollectionEntry? entry;
   final VoidCallback? onTap;
 
@@ -26,13 +23,11 @@ class Pocket extends StatelessWidget {
     final tokens = context.binder;
     final owned = entry != null;
     final labelColor = owned ? tokens.text : tokens.labelMissing;
-    final number = card.displayNumber(gameById(set.gameId), set);
-
     final variant = card.variant;
 
     return Semantics(
       button: true,
-      label: '$number ${variant ?? ''} ${card.name}, '
+      label: '${card.code} ${variant ?? ''} ${card.name}, '
           '${owned ? 'owned' : 'missing'}',
       child: InkWell(
         onTap: onTap,
@@ -48,7 +43,7 @@ class Pocket extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        number,
+                        card.code,
                         maxLines: 1,
                         overflow: TextOverflow.clip,
                         style: numberStyle(color: labelColor),
@@ -56,7 +51,7 @@ class Pocket extends StatelessWidget {
                     ),
                     if (variant != null) ...[
                       const SizedBox(width: 3),
-                      VariantTag(label: variant),
+                      Flexible(child: VariantTag(label: variant)),
                     ],
                   ],
                 ),
@@ -114,7 +109,8 @@ class Pocket extends StatelessWidget {
   Widget _content(BuildContext context) {
     final e = entry;
     if (e == null) return const SizedBox.expand();
-    if (e.hasPhoto) return CardPhoto(entry: e);
+    final photo = e.photoPath;
+    if (photo != null) return CardPhoto(path: photo);
     final tokens = context.binder;
     return Container(
       decoration: BoxDecoration(
@@ -162,6 +158,8 @@ class VariantTag extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
         style: TextStyle(
           fontSize: large ? 11 : 9,
           height: 1,

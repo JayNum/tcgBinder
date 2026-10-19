@@ -2,85 +2,41 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../models/collection.dart';
 import '../theme/app_theme.dart';
 
-/// Shows the user's own scan of a card. Until scanning exists, entries carry a
-/// demo colour and we draw a simple card silhouette instead.
+/// The user's own photo of a card, filling its pocket like a sleeved card.
 class CardPhoto extends StatelessWidget {
-  const CardPhoto({super.key, required this.entry, this.scale = 1});
+  const CardPhoto({super.key, required this.path, this.radius = 4});
 
-  final CollectionEntry entry;
-  final double scale;
+  final String path;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.binder;
-    final path = entry.photoPath;
-    if (path != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4 * scale),
-        child: Image.file(File(path), fit: BoxFit.cover),
-      );
-    }
-    final color = entry.demoColor ?? tokens.muted;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tokens.cardEdge,
-        borderRadius: BorderRadius.circular(4 * scale),
-        boxShadow: const [
-          BoxShadow(color: Color(0x2E000000), blurRadius: 3, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(4 * scale),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3 * scale),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 5 * scale,
-              vertical: 6 * scale,
-            ),
-            child: LayoutBuilder(
-              builder: (context, box) {
-                final line = Colors.white.withValues(alpha: 0.42);
-                Widget bar(double widthFactor) => FractionallySizedBox(
-                      widthFactor: widthFactor,
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        height: 4 * scale,
-                        decoration: BoxDecoration(
-                          color: line,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    );
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    bar(0.62),
-                    SizedBox(height: 4 * scale),
-                    Container(
-                      height: box.maxHeight * 0.44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.28),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    SizedBox(height: 4 * scale),
-                    bar(0.9),
-                    SizedBox(height: 4 * scale),
-                    bar(0.7),
-                  ],
-                );
-              },
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final width = box.maxWidth.isFinite ? box.maxWidth : 300.0;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Image.file(
+            File(path),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            // Decode at the size it's shown: keeps binder pages smooth.
+            cacheWidth: (width * dpr).round().clamp(64, 1200),
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stack) => ColoredBox(
+              color: context.binder.pocket,
+              child: Icon(
+                Icons.broken_image_outlined,
+                color: context.binder.labelMissing,
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

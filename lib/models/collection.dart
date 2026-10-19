@@ -1,5 +1,3 @@
-import 'dart:ui' show Color;
-
 /// Card condition on the European (Cardmarket) scale.
 enum CardCondition {
   mint('Mint', 'MT'),
@@ -13,6 +11,9 @@ enum CardCondition {
   const CardCondition(this.label, this.short);
   final String label;
   final String short;
+
+  static CardCondition byName(String? name) => CardCondition.values
+      .firstWhere((c) => c.name == name, orElse: () => nearMint);
 }
 
 enum Edition {
@@ -22,33 +23,52 @@ enum Edition {
 
   const Edition(this.label);
   final String label;
+
+  static Edition byName(String? name) =>
+      Edition.values.firstWhere((e) => e.name == name, orElse: () => unlimited);
 }
+
+const cardLanguages = [
+  'English',
+  'German',
+  'French',
+  'Italian',
+  'Spanish',
+  'Portuguese',
+  'Japanese',
+  'Korean',
+  'Chinese',
+];
 
 /// One card the user owns. Stored only on the device.
 class CollectionEntry {
   const CollectionEntry({
     required this.cardId,
+    required this.setId,
+    required this.gameId,
+    required this.addedAt,
     this.quantity = 1,
     this.condition = CardCondition.nearMint,
     this.edition = Edition.unlimited,
     this.language = 'English',
     this.photoPath,
-    this.demoColor,
   });
 
   final String cardId;
+
+  /// Kept with the entry so the home screen can count without the catalog.
+  final String setId;
+  final String gameId;
+  final DateTime addedAt;
   final int quantity;
   final CardCondition condition;
   final Edition edition;
   final String language;
 
-  /// Path to the user's own scan on the device; null if added without photo.
+  /// The user's own photo of the card on the device; null if none yet.
   final String? photoPath;
 
-  /// Stand-in for a photo until scanning is built. Remove later.
-  final Color? demoColor;
-
-  bool get hasPhoto => photoPath != null || demoColor != null;
+  bool get hasPhoto => photoPath != null;
 
   CollectionEntry copyWith({
     int? quantity,
@@ -59,12 +79,40 @@ class CollectionEntry {
   }) {
     return CollectionEntry(
       cardId: cardId,
+      setId: setId,
+      gameId: gameId,
+      addedAt: addedAt,
       quantity: quantity ?? this.quantity,
       condition: condition ?? this.condition,
       edition: edition ?? this.edition,
       language: language ?? this.language,
       photoPath: photoPath ?? this.photoPath,
-      demoColor: demoColor,
     );
   }
+
+  Map<String, Object?> toJson() => {
+        'cardId': cardId,
+        'setId': setId,
+        'gameId': gameId,
+        'addedAt': addedAt.toIso8601String(),
+        'quantity': quantity,
+        'condition': condition.name,
+        'edition': edition.name,
+        'language': language,
+        'photoPath': photoPath,
+      };
+
+  factory CollectionEntry.fromJson(Map<String, Object?> json) =>
+      CollectionEntry(
+        cardId: json['cardId']! as String,
+        setId: json['setId']! as String,
+        gameId: json['gameId']! as String,
+        addedAt: DateTime.tryParse(json['addedAt'] as String? ?? '') ??
+            DateTime.now(),
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        condition: CardCondition.byName(json['condition'] as String?),
+        edition: Edition.byName(json['edition'] as String?),
+        language: json['language'] as String? ?? 'English',
+        photoPath: json['photoPath'] as String?,
+      );
 }

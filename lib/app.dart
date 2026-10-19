@@ -1,39 +1,47 @@
 import 'package:flutter/material.dart';
 
+import 'catalog/catalog_repository.dart';
+import 'catalog/catalog_scope.dart';
 import 'data/collection_store.dart';
+import 'data/settings_store.dart';
 import 'screens/home_shell.dart';
+import 'services/ads.dart';
 import 'theme/app_theme.dart';
 
-class TcgBinderApp extends StatefulWidget {
-  const TcgBinderApp({super.key, this.store});
+class TcgBinderApp extends StatelessWidget {
+  const TcgBinderApp({
+    super.key,
+    required this.collection,
+    required this.settings,
+    required this.catalog,
+    required this.ads,
+  });
 
-  /// Injected in tests; the app creates the demo collection otherwise.
-  final CollectionStore? store;
-
-  @override
-  State<TcgBinderApp> createState() => _TcgBinderAppState();
-}
-
-class _TcgBinderAppState extends State<TcgBinderApp> {
-  late final CollectionStore _store = widget.store ?? CollectionStore.demo();
-
-  @override
-  void dispose() {
-    if (widget.store == null) _store.dispose();
-    super.dispose();
-  }
+  final CollectionStore collection;
+  final SettingsStore settings;
+  final CatalogRepository catalog;
+  final AdsService ads;
 
   @override
   Widget build(BuildContext context) {
-    return CollectionScope(
-      store: _store,
-      child: MaterialApp(
-        title: 'TCG Binder',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        themeMode: ThemeMode.system,
-        home: const HomeShell(),
+    return AdsScope(
+      ads: ads,
+      child: CatalogScope(
+        repository: catalog,
+        child: SettingsScope(
+          store: settings,
+          child: CollectionScope(
+            store: collection,
+            child: MaterialApp(
+              title: 'TCG Binder',
+              debugShowCheckedModeBanner: false,
+              theme: buildTheme(Brightness.light),
+              darkTheme: buildTheme(Brightness.dark),
+              themeMode: ThemeMode.system,
+              home: const HomeShell(),
+            ),
+          ),
+        ),
       ),
     );
   }

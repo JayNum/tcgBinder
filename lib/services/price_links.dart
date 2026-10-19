@@ -41,43 +41,6 @@ class PriceLinks {
       ? const [Marketplace.cardmarket, Marketplace.tcgplayer, Marketplace.ebay]
       : const [Marketplace.tcgplayer, Marketplace.cardmarket, Marketplace.ebay];
 
-  /// Search text such as `Charizard Base Set 1st Edition`.
-  static String searchQuery({
-    required CatalogCard card,
-    required CardSet set,
-    Edition? edition,
-  }) {
-    final parts = [card.name, if (card.subtitle != null) card.subtitle!, set.name];
-    if (edition != null && edition != Edition.unlimited) {
-      parts.add(edition.label);
-    }
-    return parts.join(' ');
-  }
-
-  /// Cardmarket search by card code, the way collectors search there:
-  /// `OP16-001` for One Piece / Riftbound (also finds every alt-art),
-  /// `Charizard BS 4` for Pokémon (Cardmarket names it "Charizard (BS 4)"),
-  /// the card's full name for Magic and Lorcana. Cardmarket only matches
-  /// product names, so the set name is left out; the results list every
-  /// printing with its set.
-  static String cardmarketQuery({
-    required Game game,
-    required CatalogCard card,
-    required CardSet set,
-  }) {
-    final code = card.code(game, set);
-    switch (game.codeStyle) {
-      case CardCodeStyle.dashed:
-        return code!;
-      case CardCodeStyle.spaced:
-        return '${card.name} $code';
-      case CardCodeStyle.none:
-        return card.subtitle == null
-            ? card.name
-            : '${card.name} ${card.subtitle}';
-    }
-  }
-
   /// eBay listings usually mention the code (`OP16-001`) or the printed
   /// number (`4/102`), so include it next to the name.
   static String ebayQuery({
@@ -86,18 +49,19 @@ class PriceLinks {
     required CardSet set,
     Edition? edition,
   }) {
+    final parts = <String>[];
     switch (game.codeStyle) {
       case CardCodeStyle.dashed:
-        return '${card.code(game, set)} ${card.name}';
-      case CardCodeStyle.spaced:
-        final parts = [card.name, card.printedNumber(set), set.name];
-        if (edition != null && edition != Edition.unlimited) {
-          parts.add(edition.label);
-        }
-        return parts.join(' ');
-      case CardCodeStyle.none:
-        return '${searchQuery(card: card, set: set)} ${game.name}';
+        parts.addAll([card.code, card.name]);
+      case CardCodeStyle.slashed:
+        parts.addAll([card.name, card.code, set.name]);
+      case CardCodeStyle.number:
+        parts.addAll([card.fullName.replaceAll(' - ', ' '), set.name]);
     }
+    if (edition != null && edition != Edition.unlimited) {
+      parts.add(edition.label);
+    }
+    return parts.join(' ');
   }
 
   static Uri forMarketplace(
@@ -115,13 +79,13 @@ class PriceLinks {
         return Uri.https(
           'www.cardmarket.com',
           '/en/${game.cardmarketSlug}/Products/Search',
-          {'searchString': cardmarketQuery(game: game, card: card, set: set)},
+          {'searchString': card.cardmarketQuery},
         );
       case Marketplace.tcgplayer:
         final direct = card.tcgplayerUrl;
         if (direct != null) return Uri.parse(direct);
         return Uri.https('www.tcgplayer.com', '/search/all/product', {
-          'q': searchQuery(card: card, set: set, edition: edition),
+          'q': '${card.fullName.replaceAll(' - ', ' ')} ${set.name}',
         });
       case Marketplace.ebay:
         final host = _ebayHosts[countryCode?.toUpperCase()] ?? 'www.ebay.com';

@@ -1,11 +1,16 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../catalog/games.dart';
 import '../data/collection_store.dart';
-import '../data/sample_catalog.dart';
+import '../data/settings_store.dart';
 import '../models/catalog.dart';
+import '../services/ads.dart';
+import '../services/photos.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
-import '../widgets/ad_banner.dart';
 import 'game_screen.dart';
 
 /// Home: collection stats and one tile per supported game.
@@ -17,16 +22,6 @@ class HomeScreen extends StatelessWidget {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
 
-    final startedBinders = sets
-        .where((s) => store.ownedIn(cardsInSet(s.id)) > 0)
-        .length;
-    final completeSets = sets.where((s) {
-      final total = s.printedTotal;
-      if (total == null) return false;
-      final base = cardsInSet(s.id).where((c) => !c.isVariant && !c.isReprint);
-      return store.ownedIn(base) >= total;
-    }).length;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -34,24 +29,31 @@ class HomeScreen extends StatelessWidget {
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
         ),
       ),
-      body: Column(
+      bottomNavigationBar: const BannerAdView(),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          Row(
+            children: [
+              _Stat(value: '${store.totalCards}', label: 'Cards'),
+              const SizedBox(width: 8),
+              _Stat(
+                value: '${store.startedSets().length}',
+                label: 'Binders started',
+              ),
+              const SizedBox(width: 8),
+              _Stat(
+                value: '${store.entries.where((e) => e.hasPhoto).length}',
+                label: 'Photos',
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    _Stat(value: '${store.totalCards}', label: 'Cards'),
-                    const SizedBox(width: 8),
-                    _Stat(value: '$startedBinders', label: 'Binders started'),
-                    const SizedBox(width: 8),
-                    _Stat(value: '$completeSets', label: 'Sets complete'),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                Expanded(
                   child: Text(
                     'GAMES',
                     style: TextStyle(
@@ -62,22 +64,22 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.3,
-                  children: [
-                    for (final game in games) _GameTile(game: game),
-                    const _CustomBinderTile(),
-                  ],
+                Text(
+                  'Long-press a game to change its image',
+                  style: TextStyle(fontSize: 11, color: tokens.labelMissing),
                 ),
               ],
             ),
           ),
-          const AdBannerPlaceholder(),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.15,
+            children: [for (final game in games) _GameTile(game: game)],
+          ),
         ],
       ),
     );
@@ -93,44 +95,74 @@ class _GameTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
-    final gameSets = setsOfGame(game.id);
-    final gameCards = allCards.where((c) => gameSets.any((s) => s.id == c.setId));
-    final copies = store.copiesIn(gameCards);
-    final started =
-        gameSets.where((s) => store.ownedIn(cardsInSet(s.id)) > 0).length;
+    final settings = SettingsScope.of(context);
+    final image = settings.gameImage(game.id);
+    final copies = store.copiesInGame(game.id);
+    final started = store.startedSets(gameId: game.id).length;
     final line = copies == 0
         ? 'Not started yet'
         : '$copies cards · $started ${started == 1 ? 'binder' : 'binders'}';
 
-    return Material(
-      color: tokens.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: tokens.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => GameScreen(game: game)),
+    return Semantics(
+      button: true,
+      hint: 'Long-press to change the image',
+      child: Material(
+        color: tokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: tokens.border),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 46,
-              color: gameColor(game.id),
-              alignment: Alignment.centerLeft,
-              child: Container(
-                width: 6,
-                color: Colors.black.withValues(alpha: 0.2),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => GameScreen(game: game)),
+          ),
+          onLongPress: () => _editImage(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (image != null)
+                      Image.file(
+                        File(image),
+                        fit: BoxFit.cover,
+                        cacheWidth: 600,
+                        errorBuilder: (context, error, stack) =>
+                            ColoredBox(color: gameColor(game.id)),
+                      )
+                    else
+                      ColoredBox(color: gameColor(game.id)),
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Material(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => _editImage(context),
+                          child: const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              size: 16,
+                              color: Colors.white,
+                              semanticLabel: 'Change image',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       game.name,
@@ -141,7 +173,6 @@ class _GameTile extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
                       line,
                       maxLines: 1,
@@ -151,43 +182,61 @@ class _GameTile extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-class _CustomBinderTile extends StatelessWidget {
-  const _CustomBinderTile();
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.binder;
-    return OutlinedButton(
-      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Custom binders are coming in a later version.'),
+  Future<void> _editImage(BuildContext context) async {
+    final settings = SettingsScope.of(context);
+    final hasImage = settings.gameImage(game.id) != null;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                '${game.name} image',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, 'gallery'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(context, 'camera'),
+            ),
+            if (hasImage)
+              ListTile(
+                leading: const Icon(Icons.restore),
+                title: const Text('Use the default colour'),
+                onTap: () => Navigator.pop(context, 'reset'),
+              ),
+          ],
         ),
       ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: tokens.muted,
-        side: BorderSide(color: tokens.pocketBorder, width: 1.5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.add),
-          SizedBox(height: 6),
-          Text(
-            'Custom binder',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
     );
+    if (choice == null) return;
+    if (choice == 'reset') {
+      settings.setGameImage(game.id, null);
+      return;
+    }
+    final path = await pickAndSavePhoto(
+      source: choice == 'camera' ? ImageSource.camera : ImageSource.gallery,
+      targetPath: settings.newImagePath(game.id),
+      maxWidth: 1000,
+    );
+    if (path != null) settings.setGameImage(game.id, path);
   }
 }
 

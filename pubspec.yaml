@@ -1,15 +1,25 @@
 name: tcg_binder
 description: A digital binder for your trading card collection.
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
 
+# New packages use `any` so pub picks the newest versions that work with your
+# Flutter; pubspec.lock then pins them.
 dependencies:
   flutter:
     sdk: flutter
   url_launcher: ^6.3.1
+  http: any
+  path_provider: any
+  path: any
+  image_picker: any
+  camera: any
+  google_mlkit_text_recognition: any
+  google_mobile_ads: any
+  image: any
 
 dev_dependencies:
   flutter_test:
