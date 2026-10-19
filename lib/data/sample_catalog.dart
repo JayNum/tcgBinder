@@ -3,11 +3,27 @@ import '../models/catalog.dart';
 /// A small hand-written catalog so the app has something to show.
 /// Next step: replace this with the imported catalogs for all five games.
 const games = <Game>[
-  Game(id: 'pokemon', name: 'Pokémon', cardmarketSlug: 'Pokemon', hasEditions: true),
+  Game(
+    id: 'pokemon',
+    name: 'Pokémon',
+    cardmarketSlug: 'Pokemon',
+    codeStyle: CardCodeStyle.spaced,
+    hasEditions: true,
+  ),
   Game(id: 'magic', name: 'Magic: The Gathering', cardmarketSlug: 'Magic'),
-  Game(id: 'onepiece', name: 'One Piece', cardmarketSlug: 'OnePiece'),
+  Game(
+    id: 'onepiece',
+    name: 'One Piece',
+    cardmarketSlug: 'OnePiece',
+    codeStyle: CardCodeStyle.dashed,
+  ),
   Game(id: 'lorcana', name: 'Disney Lorcana', cardmarketSlug: 'Lorcana'),
-  Game(id: 'riftbound', name: 'Riftbound', cardmarketSlug: 'Riftbound'),
+  Game(
+    id: 'riftbound',
+    name: 'Riftbound',
+    cardmarketSlug: 'Riftbound',
+    codeStyle: CardCodeStyle.dashed,
+  ),
 ];
 
 const baseSet = CardSet(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/sample_catalog.dart';
 import '../models/catalog.dart';
 import '../models/collection.dart';
 import '../theme/app_theme.dart';
@@ -25,7 +26,7 @@ class Pocket extends StatelessWidget {
     final tokens = context.binder;
     final owned = entry != null;
     final labelColor = owned ? tokens.text : tokens.labelMissing;
-    final number = card.printedNumber(set);
+    final number = card.displayNumber(gameById(set.gameId), set);
 
     return Semantics(
       button: true,

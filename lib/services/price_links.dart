@@ -54,6 +54,48 @@ class PriceLinks {
     return parts.join(' ');
   }
 
+  /// Cardmarket search by card code, the way collectors search there:
+  /// `OP16-001` for One Piece / Riftbound (also finds every alt-art),
+  /// `Charizard BS 4` for Pokémon (Cardmarket names it "Charizard (BS 4)"),
+  /// name + set for games without a short code.
+  static String cardmarketQuery({
+    required Game game,
+    required CatalogCard card,
+    required CardSet set,
+  }) {
+    final code = card.code(game, set);
+    switch (game.codeStyle) {
+      case CardCodeStyle.dashed:
+        return code!;
+      case CardCodeStyle.spaced:
+        return '${card.name} $code';
+      case CardCodeStyle.none:
+        return searchQuery(card: card, set: set);
+    }
+  }
+
+  /// eBay listings usually mention the code (`OP16-001`) or the printed
+  /// number (`4/102`), so include it next to the name.
+  static String ebayQuery({
+    required Game game,
+    required CatalogCard card,
+    required CardSet set,
+    Edition? edition,
+  }) {
+    switch (game.codeStyle) {
+      case CardCodeStyle.dashed:
+        return '${card.code(game, set)} ${card.name}';
+      case CardCodeStyle.spaced:
+        final parts = [card.name, card.printedNumber(set), set.name];
+        if (edition != null && edition != Edition.unlimited) {
+          parts.add(edition.label);
+        }
+        return parts.join(' ');
+      case CardCodeStyle.none:
+        return '${searchQuery(card: card, set: set)} ${game.name}';
+    }
+  }
+
   static Uri forMarketplace(
     Marketplace marketplace, {
     required Game game,
@@ -62,7 +104,6 @@ class PriceLinks {
     Edition? edition,
     String? countryCode,
   }) {
-    final query = searchQuery(card: card, set: set, edition: edition);
     switch (marketplace) {
       case Marketplace.cardmarket:
         final direct = card.cardmarketUrl;
@@ -70,16 +111,18 @@ class PriceLinks {
         return Uri.https(
           'www.cardmarket.com',
           '/en/${game.cardmarketSlug}/Products/Search',
-          {'searchString': query},
+          {'searchString': cardmarketQuery(game: game, card: card, set: set)},
         );
       case Marketplace.tcgplayer:
         final direct = card.tcgplayerUrl;
         if (direct != null) return Uri.parse(direct);
-        return Uri.https('www.tcgplayer.com', '/search/all/product', {'q': query});
+        return Uri.https('www.tcgplayer.com', '/search/all/product', {
+          'q': searchQuery(card: card, set: set, edition: edition),
+        });
       case Marketplace.ebay:
         final host = _ebayHosts[countryCode?.toUpperCase()] ?? 'www.ebay.com';
         return Uri.https(host, '/sch/i.html', {
-          '_nkw': '$query ${game.name}',
+          '_nkw': ebayQuery(game: game, card: card, set: set, edition: edition),
           'LH_Sold': '1',
           'LH_Complete': '1',
         });

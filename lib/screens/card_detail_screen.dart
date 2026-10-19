@@ -34,7 +34,7 @@ class CardDetailScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             Text(
-              '${card.printedNumber(set)} · ${set.name} · ${game.name}',
+              '${card.displayNumber(game, set)} · ${set.name} · ${game.name}',
               style: TextStyle(fontSize: 12, color: tokens.muted),
             ),
           ],
