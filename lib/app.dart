@@ -9,7 +9,7 @@ import 'screens/home_shell.dart';
 import 'theme/app_theme.dart';
 
 class TcgBinderApp extends StatelessWidget {
-  const TcgBinderApp({
+  TcgBinderApp({
     super.key,
     required this.collection,
     required this.settings,
