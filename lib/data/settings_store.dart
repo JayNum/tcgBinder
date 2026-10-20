@@ -26,6 +26,7 @@ class SettingsStore extends ChangeNotifier {
   bool _isPro = false;
   String _artDay = '';
   int _artCount = 0;
+  int _clockSeen = 0; // latest time we have seen, in ms
   String _language = AppLanguage.system;
   AppSkin _skin = AppSkin.classic;
 
@@ -50,6 +51,7 @@ class SettingsStore extends ChangeNotifier {
       _isPro = json['isPro'] == true;
       _artDay = json['artDay'] as String? ?? '';
       _artCount = (json['artCount'] as num?)?.toInt() ?? 0;
+      _clockSeen = (json['clockSeen'] as num?)?.toInt() ?? 0;
       _skin = AppSkin.byName(json['skin'] as String?);
       final lang = json['language'];
       if (lang is String && (lang == 'en' || lang == 'de')) _language = lang;
@@ -82,8 +84,13 @@ class SettingsStore extends ChangeNotifier {
   /// to be put behind a paywall, so Magic gets a free daily allowance).
   static const freeMagicArtScansPerDay = 10;
 
-  static String _today() {
-    final n = DateTime.now();
+  /// Today's date, but never earlier than the latest time we have seen, so
+  /// turning the phone's clock back does not give new scans.
+  String _today() {
+    final real = DateTime.now().millisecondsSinceEpoch;
+    final n = DateTime.fromMillisecondsSinceEpoch(
+      real > _clockSeen ? real : _clockSeen,
+    );
     return '${n.year}-${n.month}-${n.day}';
   }
 
@@ -96,6 +103,8 @@ class SettingsStore extends ChangeNotifier {
   /// Counts one Magic artwork scan for today.
   void useMagicArtScan() {
     final today = _today();
+    final real = DateTime.now().millisecondsSinceEpoch;
+    if (real > _clockSeen) _clockSeen = real;
     if (_artDay != today) {
       _artDay = today;
       _artCount = 0;
@@ -213,6 +222,7 @@ class SettingsStore extends ChangeNotifier {
       'isPro': _isPro,
       'artDay': _artDay,
       'artCount': _artCount,
+      'clockSeen': _clockSeen,
       'language': _language,
       'skin': _skin.name,
     });
