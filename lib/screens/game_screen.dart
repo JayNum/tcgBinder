@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../catalog/catalog_scope.dart';
 import '../data/collection_store.dart';
 import '../models/catalog.dart';
-import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
 import '../widgets/card_search_widgets.dart';
@@ -118,7 +117,6 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const BannerAdView(),
       body: FutureBuilder<List<CardSet>>(
         future: _loading,
         builder: (context, snapshot) {
@@ -288,8 +286,9 @@ class _SetRow extends StatelessWidget {
       total = set.printedTotal ?? base.length;
     }
 
-    final cover = started ? gameColor(game.id) : tokens.pocketBorder;
-    final coverText = started ? Colors.white : tokens.muted;
+    final gameTint = gameColor(game.id);
+    final cover = started ? gameTint : gameTint.withValues(alpha: 0.45);
+    const coverText = Colors.white;
     final year = set.releaseYear;
 
     return Material(
@@ -355,6 +354,7 @@ class _SetRow extends StatelessWidget {
                                     .clamp(0.0, 1.0)
                                     .toDouble(),
                                 minHeight: 5,
+                                color: gameTint,
                                 backgroundColor: tokens.pocketBorder,
                               ),
                             ),
@@ -365,7 +365,7 @@ class _SetRow extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: context.accent,
+                              color: gameTint,
                             ),
                           ),
                         ],

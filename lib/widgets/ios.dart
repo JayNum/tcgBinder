@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/label_colors.dart';
 
 /// One row of an [showActionSheet].
 class SheetAction<T> {
@@ -163,21 +164,28 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// A rounded filter pill: filled with the accent colour when switched on.
+/// A rounded filter pill: filled with its colour when switched on. Give it
+/// a [color] (a label colour) and it shows a dot of that colour when off.
 class PillChip extends StatelessWidget {
   const PillChip({
     super.key,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.onLongPress,
     this.icon,
+    this.color,
     this.background,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final IconData? icon;
+
+  /// Fill when switched on (defaults to the accent colour).
+  final Color? color;
 
   /// Colour when switched off; defaults to the surface colour.
   final Color? background;
@@ -185,13 +193,15 @@ class PillChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.binder;
-    final fg = selected ? Colors.white : tokens.text;
+    final fill = color ?? context.accent;
+    final fg = selected ? onColor(fill) : tokens.text;
     return Semantics(
       button: true,
       selected: selected,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.only(right: 8),
           child: AnimatedContainer(
@@ -200,13 +210,20 @@ class PillChip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? context.accent : (background ?? tokens.surface),
+              color: selected ? fill : (background ?? tokens.surface),
               borderRadius: BorderRadius.circular(17),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icon != null) ...[
+                if (color != null && !selected) ...[
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 7),
+                ] else if (icon != null) ...[
                   Icon(icon, size: 16, color: fg),
                   const SizedBox(width: 5),
                 ],

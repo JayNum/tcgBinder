@@ -99,6 +99,24 @@ class CollectionStore extends ChangeNotifier {
     update(e.copyWith(labels: e.labels.where((l) => l != label).toList()));
   }
 
+  /// Takes [label] off every card.
+  void deleteLabel(String label) {
+    for (final e in _entries.values.toList()) {
+      if (e.labels.contains(label)) {
+        _entries[e.cardId] =
+            e.copyWith(labels: e.labels.where((l) => l != label).toList());
+      }
+    }
+    _changed();
+  }
+
+  /// The newest cards added to the collection, newest first.
+  List<CollectionEntry> recentAdditions({int limit = 10}) {
+    final all = _entries.values.toList()
+      ..sort((a, b) => b.addedAt.compareTo(a.addedAt));
+    return all.take(limit).toList();
+  }
+
   /// Adds one copy of [card]; keeps the existing photo unless [photoPath]
   /// is given.
   void addCopy(CatalogCard card, {String? photoPath}) {

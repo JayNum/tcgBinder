@@ -59,37 +59,45 @@ class CardFace extends StatelessWidget {
                       colors: [color, Color.lerp(color, Colors.black, 0.45)!],
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          item.code,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: numberStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            size: 12,
-                          ),
+                  child: LayoutBuilder(
+                    builder: (context, box) {
+                      // Everything scales with the card, so small cards in
+                      // a row never overflow.
+                      final k = (box.maxWidth / 190).clamp(0.3, 1.2).toDouble();
+                      return Padding(
+                        padding: EdgeInsets.all(10 * k),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              item.code,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: numberStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                size: math.max(6.5, 12 * k),
+                              ),
+                            ),
+                            SizedBox(height: 6 * k),
+                            Text(
+                              item.title,
+                              textAlign: TextAlign.center,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: math.max(8, 15 * k),
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.title,
-                          textAlign: TextAlign.center,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),
+            ),
       ),
     );
   }

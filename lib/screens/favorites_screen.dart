@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../catalog/catalog_scope.dart';
 import '../data/collection_store.dart';
-import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import '../widgets/favorites_carousel.dart';
 import '../widgets/ios.dart';
+import '../widgets/recent_strip.dart';
 import 'card_detail_screen.dart';
 
 /// The first tab: the cards the user gave a heart, on a slowly turning
@@ -29,6 +29,16 @@ class FavoritesScreen extends StatelessWidget {
         ),
     ];
 
+    // The last 10 cards added to the collection.
+    final recent = [
+      for (final e in store.recentAdditions(limit: 10))
+        FavoriteItem(
+          entry: e,
+          card: catalog.cardFor(e.setId, e.cardId),
+          set: catalog.setById(e.setId),
+        ),
+    ];
+
     void open(FavoriteItem item) {
       final card = item.card, set = item.set;
       if (card == null || set == null) {
@@ -43,7 +53,6 @@ class FavoritesScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      bottomNavigationBar: const BannerAdView(),
       body: CustomScrollView(
         slivers: [
           const CupertinoSliverNavigationBar(
@@ -85,30 +94,34 @@ class FavoritesScreen extends StatelessWidget {
             )
           else ...[
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: FavoritesCarousel(items: items, onOpen: open),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      context.accent.withValues(alpha: 0.22),
+                      context.accent.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: FavoritesCarousel(items: items, onOpen: open),
+                ),
               ),
             ),
             SliverToBoxAdapter(child: _Summary(count: items.length)),
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
-                child: SectionHeader('All favorites'),
+                child: SectionHeader('Recent additions'),
               ),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              sliver: SliverGrid.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 63 / 112,
-                ),
-                itemCount: items.length,
-                itemBuilder: (context, i) =>
-                    _FavoriteTile(item: items[i], onTap: () => open(items[i])),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: RecentStrip(items: recent, onOpen: open),
               ),
             ),
           ],
@@ -127,12 +140,16 @@ class _Summary extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
-    Widget stat(String value, String label) => Expanded(
+    Widget stat(String value, String label, Color color) => Expanded(
           child: Column(
             children: [
               Text(
                 value,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
               ),
               Text(
                 label,
@@ -148,43 +165,10 @@ class _Summary extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            stat('${store.totalCards}', 'Cards'),
-            stat('${store.startedSets().length}', 'Binders'),
-            stat('$count', count == 1 ? 'Favorite' : 'Favorites'),
+            stat('${store.totalCards}', 'Cards', context.accent),
+            stat('${store.startedSets().length}', 'Binders', const Color(0xFFFF9500)),
+            stat('$count', count == 1 ? 'Favorite' : 'Favorites', const Color(0xFFFF2D55)),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FavoriteTile extends StatelessWidget {
-  const _FavoriteTile({required this.item, required this.onTap});
-
-  final FavoriteItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '${item.title}, favorite',
-      child: GestureDetector(
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CardFace(item: item, radius: 6),
-              const SizedBox(height: 6),
-              Text(
-                item.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
         ),
       ),
     );

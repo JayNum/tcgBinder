@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 
-/// Small app settings saved on the phone: custom game images, the last game
-/// scanned, and the counter for full-screen ads.
+import '../theme/label_colors.dart';
+
+/// Small app settings saved on the phone: custom game images, game order,
+/// label colours and the last game scanned.
 class SettingsStore extends ChangeNotifier {
   SettingsStore({this.file, this.imageDir});
 
@@ -13,12 +15,12 @@ class SettingsStore extends ChangeNotifier {
 
   final Map<String, String> _gameImages = {};
   String? _lastScanGame;
-  int _addsSinceAd = 0;
 
   /// The user's order of games (ids); games not listed follow in the
   /// default order.
   List<String> _gameOrder = [];
   final Set<String> _hiddenGames = {};
+  final Map<String, int> _labelColors = {};
 
   Future<void> load() async {
     final f = file;
@@ -35,15 +37,31 @@ class SettingsStore extends ChangeNotifier {
         });
       }
       _lastScanGame = json['lastScanGame'] as String?;
-      _addsSinceAd = (json['addsSinceAd'] as num?)?.toInt() ?? 0;
       final order = json['gameOrder'];
       if (order is List) _gameOrder = order.whereType<String>().toList();
+      final colors = json['labelColors'];
+      if (colors is Map) {
+        colors.forEach((k, v) {
+          if (k is String && v is int) _labelColors[k.toLowerCase()] = v;
+        });
+      }
       final hidden = json['hiddenGames'];
       if (hidden is List) _hiddenGames.addAll(hidden.whereType<String>());
     } on Object catch (e) {
       debugPrint('Could not read settings: $e');
     }
     notifyListeners();
+  }
+
+  /// The colour of a label: the one the user picked, or a steady default.
+  Color labelColor(String label) {
+    final stored = _labelColors[label.toLowerCase()];
+    return stored == null ? defaultLabelColor(label) : Color(stored);
+  }
+
+  void setLabelColor(String label, Color color) {
+    _labelColors[label.toLowerCase()] = color.toARGB32();
+    _save();
   }
 
   String? gameImage(String gameId) => _gameImages[gameId];
@@ -102,15 +120,6 @@ class SettingsStore extends ChangeNotifier {
     _save();
   }
 
-  /// Counts an added card; true when a full-screen ad is due (every 3rd).
-  bool countAddForAd() {
-    _addsSinceAd++;
-    final due = _addsSinceAd >= 3;
-    if (due) _addsSinceAd = 0;
-    _save();
-    return due;
-  }
-
   void _save() {
     notifyListeners();
     final f = file;
@@ -118,9 +127,9 @@ class SettingsStore extends ChangeNotifier {
     final json = jsonEncode({
       'gameImages': _gameImages,
       'lastScanGame': _lastScanGame,
-      'addsSinceAd': _addsSinceAd,
       'gameOrder': _gameOrder,
       'hiddenGames': _hiddenGames.toList(),
+      'labelColors': _labelColors,
     });
     f.parent
         .create(recursive: true)

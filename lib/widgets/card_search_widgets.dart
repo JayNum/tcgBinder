@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../catalog/card_search.dart';
 import '../catalog/catalog_scope.dart';
 import '../data/collection_store.dart';
+import '../data/settings_store.dart';
 import '../screens/card_detail_screen.dart';
 import '../theme/app_theme.dart';
+import '../theme/label_colors.dart';
 import 'card_photo.dart';
 import 'ios.dart';
 
@@ -63,13 +65,15 @@ class CardFilterBar extends StatelessWidget {
         children: [
           PillChip(
             label: 'Owned',
-            icon: Icons.check_circle_outline,
+            icon: Icons.check_circle_rounded,
+            color: const Color(0xFF34C759),
             selected: filters.owned,
             onTap: () => onChanged(filters.copyWith(owned: !filters.owned)),
           ),
           PillChip(
             label: 'Favorites',
-            icon: Icons.favorite_border_rounded,
+            icon: Icons.favorite_rounded,
+            color: const Color(0xFFFF2D55),
             selected: filters.favorites,
             onTap: () =>
                 onChanged(filters.copyWith(favorites: !filters.favorites)),
@@ -77,7 +81,7 @@ class CardFilterBar extends StatelessWidget {
           for (final label in labels)
             PillChip(
               label: label,
-              icon: Icons.sell_outlined,
+              color: SettingsScope.of(context).labelColor(label),
               selected: filters.labels.contains(label),
               onTap: () {
                 final next = {...filters.labels};
@@ -224,16 +228,17 @@ class CardResultRow extends StatelessWidget {
                     style: TextStyle(fontSize: 13, color: tokens.muted),
                   ),
                   if (entry != null && entry.labels.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      entry.labels.join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: context.accent,
-                      ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        for (final label in entry.labels)
+                          _LabelDot(
+                            label: label,
+                            color: SettingsScope.of(context).labelColor(label),
+                          ),
+                      ],
                     ),
                   ],
                 ],
@@ -260,6 +265,33 @@ class CardResultRow extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A small coloured label tag inside a result row.
+class _LabelDot extends StatelessWidget {
+  const _LabelDot({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: onColor(color),
         ),
       ),
     );

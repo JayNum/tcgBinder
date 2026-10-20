@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import 'binders_screen.dart';
 import 'favorites_screen.dart';
 import 'scan_screen.dart';
+import 'search_screen.dart';
 import 'settings_screen.dart';
 
 /// The app's frame: Favorites, Scan, Binders and Settings along the bottom.
@@ -24,10 +25,11 @@ class _HomeShellState extends State<HomeShell> {
   static const _roots = <Widget>[
     FavoritesScreen(),
     BindersScreen(),
+    SearchScreen(),
     SettingsScreen(),
   ];
 
-  final _navigators = List.generate(3, (_) => GlobalKey<NavigatorState>());
+  final _navigators = List.generate(4, (_) => GlobalKey<NavigatorState>());
   int _tab = 0;
 
   void _select(int tab) {
@@ -67,34 +69,46 @@ class _HomeShellState extends State<HomeShell> {
         if (!didPop) _back();
       },
       child: Scaffold(
-        body: Column(
+        body: Stack(
           children: [
-            Expanded(
-              // The bar below already covers the bottom safe area.
-              child: MediaQuery.removePadding(
-                context: context,
-                removeBottom: true,
-                child: IndexedStack(
-                  index: _tab,
-                  children: [
-                    for (var i = 0; i < _roots.length; i++)
-                      // Only the visible tab runs animations (the carousel).
-                      TickerMode(
-                        enabled: i == _tab,
-                        child: Navigator(
-                          key: _navigators[i],
-                          onGenerateRoute: (settings) =>
-                              MaterialPageRoute<void>(
-                            settings: settings,
-                            builder: (_) => _roots[i],
+            Column(
+              children: [
+                Expanded(
+                  // The bar below already covers the bottom safe area.
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeBottom: true,
+                    child: IndexedStack(
+                      index: _tab,
+                      children: [
+                        for (var i = 0; i < _roots.length; i++)
+                          // Only the visible tab runs animations.
+                          TickerMode(
+                            enabled: i == _tab,
+                            child: Navigator(
+                              key: _navigators[i],
+                              onGenerateRoute: (settings) =>
+                                  MaterialPageRoute<void>(
+                                settings: settings,
+                                builder: (_) => _roots[i],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                _TabBar(selected: _tab, onSelect: _select),
+              ],
             ),
-            _TabBar(selected: _tab, onSelect: _select, onScan: _scan),
+            // The big Scan button sits in the middle of the bar, rising out
+            // of it.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: MediaQuery.paddingOf(context).bottom + _TabBar.height - 46,
+              child: Center(child: _ScanButton(onTap: _scan)),
+            ),
           ],
         ),
       ),
@@ -103,15 +117,12 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class _TabBar extends StatelessWidget {
-  const _TabBar({
-    required this.selected,
-    required this.onSelect,
-    required this.onScan,
-  });
+  const _TabBar({required this.selected, required this.onSelect});
+
+  static const height = 56.0;
 
   final int selected;
   final ValueChanged<int> onSelect;
-  final VoidCallback onScan;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +135,7 @@ class _TabBar extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: (dark ? const Color(0xFF1C1C1E) : const Color(0xFFF9F9F9))
-                .withValues(alpha: 0.92),
+                .withValues(alpha: 0.94),
             border: Border(
               top: BorderSide(color: tokens.divider, width: 0.5),
             ),
@@ -132,30 +143,42 @@ class _TabBar extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: SizedBox(
-              height: 58,
+              height: height,
               child: Row(
                 children: [
                   _TabItem(
                     icon: Icons.favorite_border_rounded,
                     activeIcon: Icons.favorite_rounded,
                     label: 'Favorites',
+                    color: const Color(0xFFFF2D55),
                     selected: selected == 0,
                     onTap: () => onSelect(0),
                   ),
-                  Expanded(child: Center(child: _ScanButton(onTap: onScan))),
                   _TabItem(
                     icon: Icons.collections_bookmark_outlined,
                     activeIcon: Icons.collections_bookmark_rounded,
                     label: 'Binders',
+                    color: const Color(0xFFFF9500),
                     selected: selected == 1,
                     onTap: () => onSelect(1),
+                  ),
+                  // Room for the Scan button in the middle.
+                  const Expanded(child: SizedBox.shrink()),
+                  _TabItem(
+                    icon: Icons.search_rounded,
+                    activeIcon: Icons.search_rounded,
+                    label: 'Search',
+                    color: const Color(0xFF34C759),
+                    selected: selected == 2,
+                    onTap: () => onSelect(2),
                   ),
                   _TabItem(
                     icon: Icons.settings_outlined,
                     activeIcon: Icons.settings_rounded,
                     label: 'Settings',
-                    selected: selected == 2,
-                    onTap: () => onSelect(2),
+                    color: const Color(0xFF5856D6),
+                    selected: selected == 3,
+                    onTap: () => onSelect(3),
                   ),
                 ],
               ),
@@ -175,29 +198,45 @@ class _ScanButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.binder;
     return Semantics(
       button: true,
       label: 'Scan cards',
       child: GestureDetector(
         onTap: onTap,
+        // A ring in the page colour makes the button look cut into the bar.
         child: Container(
-          width: 52,
-          height: 52,
+          width: 76,
+          height: 76,
+          padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
-            color: context.accent,
+            color: tokens.background,
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: context.accent.withValues(alpha: 0.35),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
-          child: const Icon(
-            Icons.document_scanner_rounded,
-            color: Colors.white,
-            size: 26,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(context.accent, Colors.white, 0.25)!,
+                  context.accent,
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: context.accent.withValues(alpha: 0.45),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.document_scanner_rounded,
+              color: Colors.white,
+              size: 34,
+            ),
           ),
         ),
       ),
@@ -210,6 +249,7 @@ class _TabItem extends StatelessWidget {
     required this.icon,
     required this.activeIcon,
     required this.label,
+    required this.color,
     required this.selected,
     required this.onTap,
   });
@@ -217,12 +257,13 @@ class _TabItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
+  final Color color;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? context.accent : context.binder.muted;
+    final shown = selected ? color : context.binder.muted;
     return Expanded(
       child: Semantics(
         selected: selected,
@@ -235,14 +276,14 @@ class _TabItem extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(selected ? activeIcon : icon, color: color, size: 26),
+                Icon(selected ? activeIcon : icon, color: shown, size: 26),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
-                    color: color,
+                    color: shown,
                   ),
                 ),
               ],

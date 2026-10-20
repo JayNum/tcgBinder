@@ -4,15 +4,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../data/collection_store.dart';
+import '../data/settings_store.dart';
 import '../models/catalog.dart';
 import '../models/collection.dart';
 import '../services/add_card.dart';
-import '../services/ads.dart';
 import '../services/photos.dart';
 import '../services/price_links.dart';
 import '../theme/app_theme.dart';
 import '../widgets/card_photo.dart';
 import '../widgets/ios.dart';
+import '../widgets/label_widgets.dart';
 import '../widgets/pocket.dart';
 
 class CardDetailScreen extends StatelessWidget {
@@ -76,7 +77,6 @@ class CardDetailScreen extends StatelessWidget {
             ),
         ],
       ),
-      bottomNavigationBar: const BannerAdView(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -684,6 +684,7 @@ class _LabelsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final store = CollectionScope.of(context);
+    final settings = SettingsScope.of(context);
     final labels = store.allLabels;
 
     return Padding(
@@ -703,12 +704,13 @@ class _LabelsSection extends StatelessWidget {
                     for (final label in labels)
                       PillChip(
                         label: label,
-                        icon: Icons.sell_outlined,
+                        color: settings.labelColor(label),
                         background: tokens.pocket,
                         selected: entry.labels.contains(label),
                         onTap: () => entry.labels.contains(label)
                             ? store.removeLabel(entry.cardId, label)
                             : store.addLabel(entry.cardId, label),
+                        onLongPress: () => _manage(context, label),
                       ),
                     PillChip(
                       label: 'New label',
@@ -723,7 +725,8 @@ class _LabelsSection extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4, bottom: 6),
                   child: Text(
                     'Labels are only for you, like "Trade", "Deck" or '
-                    '"Graded". Use them in Binders to show only those cards.',
+                    '"Graded". Touch and hold a label to change its colour. '
+                    'Use them in Search to show only those cards.',
                     style: TextStyle(fontSize: 13, height: 1.35, color: tokens.muted),
                   ),
                 ),
@@ -737,14 +740,40 @@ class _LabelsSection extends StatelessWidget {
 
   Future<void> _add(BuildContext context) async {
     final store = CollectionScope.of(context);
-    final text = await promptDialog(
+    final settings = SettingsScope.of(context);
+    final created = await showNewLabelDialog(context);
+    if (created == null) return;
+    settings.setLabelColor(created.name, created.color);
+    store.addLabel(entry.cardId, created.name);
+  }
+
+  Future<void> _manage(BuildContext context, String label) async {
+    final store = CollectionScope.of(context);
+    final settings = SettingsScope.of(context);
+    final choice = await showActionSheet<String>(
       context,
-      title: 'New label',
-      placeholder: 'e.g. Trade',
-      confirmLabel: 'Add',
+      title: label,
+      actions: const [
+        SheetAction('Change colour', 'colour'),
+        SheetAction('Delete label from all cards', 'delete', destructive: true),
+      ],
     );
-    if (text != null && text.trim().isNotEmpty) {
-      store.addLabel(entry.cardId, text);
+    if (choice == 'colour' && context.mounted) {
+      final color = await showLabelColorDialog(
+        context,
+        label: label,
+        current: settings.labelColor(label),
+      );
+      if (color != null) settings.setLabelColor(label, color);
+    } else if (choice == 'delete' && context.mounted) {
+      final ok = await confirmDialog(
+        context,
+        title: 'Delete “$label”?',
+        message: 'The label is taken off every card. The cards stay.',
+        confirmLabel: 'Delete',
+        destructive: true,
+      );
+      if (ok) store.deleteLabel(label);
     }
   }
 }

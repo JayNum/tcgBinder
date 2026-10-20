@@ -8,11 +8,9 @@ import '../catalog/games.dart';
 import '../data/collection_store.dart';
 import '../data/settings_store.dart';
 import '../models/catalog.dart';
-import '../services/ads.dart';
 import '../services/photos.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
-import '../widgets/card_search_widgets.dart';
 import '../widgets/ios.dart';
 import 'arrange_games_screen.dart';
 import 'game_screen.dart';
@@ -26,24 +24,13 @@ class BindersScreen extends StatefulWidget {
 }
 
 class _BindersScreenState extends State<BindersScreen> {
-  CardFilters _filters = const CardFilters();
-  final _search = TextEditingController();
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final shown = arrangedGames(SettingsScope.of(context));
 
     return Scaffold(
-      bottomNavigationBar: const BannerAdView(),
       body: CustomScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           CupertinoSliverNavigationBar(
             largeTitle: const Text('Binders'),
@@ -58,31 +45,7 @@ class _BindersScreenState extends State<BindersScreen> {
               child: const Text('Arrange'),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: CupertinoSearchTextField(
-                controller: _search,
-                placeholder: 'Search cards',
-                onChanged: (value) =>
-                    setState(() => _filters = _filters.copyWith(query: value)),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: CardFilterBar(
-              filters: _filters,
-              onChanged: (f) => setState(() => _filters = f),
-            ),
-          ),
-          if (_filters.active)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: CardResults(filters: _filters),
-              ),
-            )
-          else if (shown.isEmpty)
+          if (shown.isEmpty)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
@@ -170,7 +133,7 @@ class _GameTile extends StatelessWidget {
                             ColoredBox(color: gameColor(game.id)),
                       )
                     else
-                      ColoredBox(color: gameColor(game.id)),
+                      _GameCover(color: gameColor(game.id)),
                     Positioned(
                       right: 8,
                       top: 8,
@@ -249,5 +212,52 @@ class _GameTile extends StatelessWidget {
       maxWidth: 1000,
     );
     if (path != null) settings.setGameImage(game.id, path);
+  }
+}
+
+/// The tile cover when the user has not picked an image: a rich gradient
+/// with two cards peeking out.
+class _GameCover extends StatelessWidget {
+  const _GameCover({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget card(double right, double top, double angle, double alpha) =>
+        Positioned(
+          right: right,
+          top: top,
+          child: Transform.rotate(
+            angle: angle,
+            child: Container(
+              width: 34,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: alpha),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(color, Colors.white, 0.18)!,
+            Color.lerp(color, Colors.black, 0.35)!,
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          card(48, 22, -0.1, 0.4),
+          card(20, 26, 0.17, 0.25),
+        ],
+      ),
+    );
   }
 }

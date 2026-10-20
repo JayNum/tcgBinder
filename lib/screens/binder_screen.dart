@@ -6,8 +6,8 @@ import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../data/collection_store.dart';
 import '../models/catalog.dart';
-import '../services/ads.dart';
 import '../theme/app_theme.dart';
+import '../theme/game_colors.dart';
 import '../widgets/ios.dart';
 import '../widgets/pocket.dart';
 import 'card_detail_screen.dart';
@@ -97,7 +97,6 @@ class _BinderScreenState extends State<BinderScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const BannerAdView(),
       body: FutureBuilder<List<CatalogCard>>(
         future: _loading,
         builder: (context, snapshot) {
@@ -206,7 +205,7 @@ class _Binder extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: context.accent,
+                      color: gameColor(set.gameId),
                     ),
                   ),
                 ],
@@ -219,6 +218,7 @@ class _Binder extends StatelessWidget {
                       ? 0.0
                       : (owned / total).clamp(0.0, 1.0).toDouble(),
                   minHeight: 6,
+                  color: gameColor(set.gameId),
                   backgroundColor: tokens.pocketBorder,
                 ),
               ),

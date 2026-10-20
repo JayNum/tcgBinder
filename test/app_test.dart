@@ -10,7 +10,11 @@ import 'package:tcg_binder/catalog/sources/source.dart';
 import 'package:tcg_binder/data/collection_store.dart';
 import 'package:tcg_binder/data/settings_store.dart';
 import 'package:tcg_binder/models/catalog.dart';
-import 'package:tcg_binder/services/ads.dart';
+import 'package:tcg_binder/models/collection.dart';
+import 'package:tcg_binder/theme/app_theme.dart';
+import 'package:tcg_binder/theme/label_colors.dart';
+import 'package:tcg_binder/widgets/favorites_carousel.dart';
+import 'package:tcg_binder/widgets/recent_strip.dart';
 import 'package:tcg_binder/services/price_links.dart';
 
 /// A tiny stand-in for a card database, so tests never go online.
@@ -98,7 +102,6 @@ void main() {
           },
           cacheDir: null,
         ),
-        ads: AdsService(enabled: false),
       );
 
   testWidgets('starts empty, add a card from a binder', (tester) async {
@@ -159,7 +162,7 @@ void main() {
     await tester.tap(find.text('Favorites').last);
     await tester.pumpAndSettle();
     expect(find.text('No favorites yet'), findsNothing);
-    expect(find.text('ALL FAVORITES'), findsOneWidget);
+    expect(find.text('RECENT ADDITIONS'), findsOneWidget);
     expect(find.text('Portgas.D.Ace'), findsWidgets);
   });
 
@@ -182,11 +185,11 @@ void main() {
       collection: store,
       settings: SettingsStore(),
       catalog: catalog,
-      ads: AdsService(enabled: false),
     ));
-    await openBinders(tester);
+    await tester.tap(find.text('Search').last);
+    await tester.pumpAndSettle();
 
-    // Search the cards themselves, from the Binders tab.
+    // Search the cards themselves, from the Search tab.
     await tester.enterText(find.byType(CupertinoSearchTextField), 'ace');
     await tester.pumpAndSettle();
     expect(find.text('2 cards'.toUpperCase()), findsOneWidget);
@@ -272,7 +275,6 @@ void main() {
       collection: CollectionStore(),
       settings: settings,
       catalog: CatalogRepository(sources: const {}, cacheDir: null),
-      ads: AdsService(enabled: false),
     ));
 
     // Magic first, Pokémon hidden.
@@ -290,6 +292,90 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pokémon'), findsOneWidget); // listed, switched off
     expect(find.byType(Switch), findsNWidgets(5));
+  });
+
+  testWidgets('Settings offers the Pro upgrade', (tester) async {
+    usePhoneScreen(tester);
+    await tester.pumpWidget(buildApp(CollectionStore()));
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Upgrade to Pro'), findsOneWidget);
+    expect(find.textContaining('Privacy'), findsNothing); // no ads, no consent
+    await tester.tap(find.text('Upgrade to Pro'));
+    await tester.pumpAndSettle();
+    expect(find.text('Backup & restore'), findsOneWidget);
+    expect(find.text('€2.99'), findsOneWidget);
+    expect(find.text('€29.99'), findsOneWidget);
+  });
+
+  testWidgets('recent strip only scrolls and loops with more than 5 cards',
+      (tester) async {
+    usePhoneScreen(tester);
+    FavoriteItem item(int i) => FavoriteItem(
+          entry: CollectionEntry(
+            cardId: 'c$i',
+            setId: 's',
+            gameId: 'onepiece',
+            addedAt: DateTime(2026, 1, i + 1),
+          ),
+        );
+    Future<void> show(int count) => tester.pumpWidget(MaterialApp(
+          theme: buildTheme(Brightness.light),
+          home: Scaffold(
+            body: RecentStrip(
+              items: [for (var i = 0; i < count; i++) item(i)],
+              onOpen: (_) {},
+            ),
+          ),
+        ));
+
+    await show(5);
+    expect(find.byType(ListView), findsNothing); // fixed row
+
+    await show(7);
+    expect(find.byType(ListView), findsOneWidget);
+    // Drag far in both directions: it never runs out of cards.
+    await tester.drag(find.byType(ListView), const Offset(-3000, 0));
+    await tester.pump();
+    expect(find.text('Saved card'), findsWidgets);
+    await tester.drag(find.byType(ListView), const Offset(6000, 0));
+    await tester.pump();
+    expect(find.text('Saved card'), findsWidgets);
+  });
+
+  test('recent additions: newest first, at most 10', () {
+    final store = CollectionStore();
+    for (var i = 0; i < 12; i++) {
+      store.update(CollectionEntry(
+        cardId: 'c$i',
+        setId: 's',
+        gameId: 'onepiece',
+        addedAt: DateTime(2026, 1, i + 1),
+      ));
+    }
+    final recent = store.recentAdditions();
+    expect(recent, hasLength(10));
+    expect(recent.first.cardId, 'c11');
+    expect(recent.last.cardId, 'c2');
+  });
+
+  test('labels have colours that can be changed', () {
+    final settings = SettingsStore();
+    expect(settings.labelColor('Trade'), defaultLabelColor('Trade'));
+    expect(settings.labelColor('trade'), settings.labelColor('Trade'));
+    settings.setLabelColor('Trade', labelPalette[3]);
+    expect(settings.labelColor('trade'), labelPalette[3]);
+
+    final store = CollectionStore()
+      ..update(CollectionEntry(
+        cardId: 'a',
+        setId: 's',
+        gameId: 'onepiece',
+        addedAt: DateTime(2026),
+        labels: const ['Trade', 'Deck'],
+      ));
+    store.deleteLabel('Trade');
+    expect(store.allLabels, ['Deck']);
   });
 
   test('price links search Cardmarket by code', () {

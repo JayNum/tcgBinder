@@ -5,19 +5,25 @@ Lorcana and Riftbound. Every set is its own binder with 9-pocket pages;
 cards you own show your own photo, missing cards show their number and name.
 Everything stays on the phone.
 
-## Features (v0.3)
+## Features (v0.4)
 
 - **Look:** follows iOS conventions (large titles, grouped lists, action
   sheets, swipe back, translucent tab bar), in light and dark.
-- **Tab bar:** Favorites, **Scan**, Binders, Settings. Each tab keeps its own
-  screens, so the bar and the Scan button stay visible everywhere.
+- **Tab bar:** Favorites, Binders, a big **Scan** button in the middle,
+  Search, Settings. Each tab keeps its own screens, so the bar and the Scan
+  button stay visible everywhere.
 - **Favorites:** cards you gave a heart turn slowly on a carousel; drag it to
-  spin it yourself, tap the front card to open it.
+  spin it yourself, tap the front card to open it. Below: your last 10
+  additions. With more than 5 the strip scrolls sideways and loops.
 - **Binders tab:** one tile per game (long-press a tile to use your own image,
-  Arrange to reorder or hide games) and a search for single cards.
-- **Search and labels:** search cards by name, code, set or rarity (all
-  downloaded sets). Give cards your own labels ("Trade", "Deck"...) on the
-  card page and switch labels on as filters to see only those cards.
+  Arrange to reorder or hide games).
+- **Search tab:** find single cards by name, code, set or rarity (all
+  downloaded sets). Give cards your own coloured labels ("Trade", "Deck"...)
+  on the card page (touch and hold a label to change its colour) and switch
+  labels on as filters.
+- **Settings:** Pro upgrade screen (backup & restore, binder looks, batch
+  scanning; purchases are not connected yet).
+- **No ads.**
 - **Game → sets:** every set of the game as a binder, empty by default.
   Filter by boosters / extra boosters / starter decks / promos; sort by
   newest, oldest or name.
@@ -31,8 +37,6 @@ Everything stays on the phone.
 - **Card detail:** your photo, all versions of the card (with the set each
   comes from and whether you own it), quantity, condition, edition, language,
   and links to Cardmarket, TCGplayer and eBay sold listings.
-- **Ads:** AdMob banner + a full-screen ad after every 3rd card added, with
-  the EU consent prompt. Uses Google's **test** ad IDs for now.
 
 ## Card data
 
@@ -49,10 +53,8 @@ All are free and need no API key. The code for each is in
 
 ## Before publishing
 
-- Replace the AdMob **test** IDs with your own: app IDs in
-  `android/app/src/main/AndroidManifest.xml` and `ios/Runner/Info.plist`,
-  unit IDs in `lib/services/ads.dart`.
-- Premium (no ads, backup export, binder customization) via RevenueCat.
+- Pro (backup export, binder customization, batch scanning) via RevenueCat;
+  the screen exists in `lib/screens/pro_screen.dart`.
 - Move to a new phone (QR) and backup export / import.
 
 ## Development
@@ -74,6 +76,6 @@ lib/
   models/                     sets, cards, collection entries
   scanner/                    reading card numbers + matching cards
   screens/                    home, game sets, binder, card detail, scan, settings
-  services/                   ads, photos, marketplace links
+  services/                   photos, marketplace links
   widgets/                    pocket, card photo
 ```
