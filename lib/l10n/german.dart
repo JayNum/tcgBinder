@@ -256,7 +256,8 @@ const Map<String, String> _de = {
 
   // Scan
   'Card number': 'Kartennummer',
-  'Artwork · Pro': 'Motiv · Pro',
+  'Artwork': 'Motiv',
+  'You used your 10 free artwork scans for today. Scan by card number, or come back tomorrow.': 'Du hast deine 10 kostenlosen Motiv-Scans für heute verbraucht. Scanne über die Kartennummer oder komm morgen wieder.',
   'Fit the card in the frame. Keep the number at the bottom sharp and avoid glare.':
       'Lege die Karte in den Rahmen. Halte die Nummer unten scharf und vermeide Spiegelungen.',
   'Fit the whole card in the frame, picture sharp and without glare. You confirm the match.':
@@ -323,8 +324,8 @@ const Map<String, String> _de = {
   'Read the printed card text in German, French, Japanese and more (Pokémon; Magic is free).':
       'Lies den gedruckten Kartentext auf Deutsch, Französisch, Japanisch und mehr (Pokémon; bei Magic kostenlos).',
   'Recognise by artwork': 'Per Motiv erkennen',
-  'Scan a card and the app finds it by its picture, then you confirm. Works when the code is hard to read.':
-      'Scanne eine Karte, die App findet sie über ihr Bild, du bestätigst. Funktioniert auch, wenn der Code schwer lesbar ist.',
+  'Scan a card and the app finds it by its picture, then you confirm. Free for Magic (10 a day). Pro: every game, no limit.':
+      'Scanne eine Karte, die App findet sie über ihr Bild, du bestätigst. Kostenlos für Magic (10 am Tag). Pro: jedes Spiel, ohne Limit.',
   'Backup & restore': 'Sichern & Wiederherstellen',
   'Save your whole collection, photos included, as one file. Keep it anywhere and restore it on any phone.':
       'Sichere deine ganze Sammlung samt Fotos als eine Datei. Bewahre sie überall auf und stelle sie auf jedem Handy wieder her.',

@@ -31,7 +31,7 @@ class _ProScreenState extends State<ProScreen> {
       Color(0xFFFF2D55),
       'Recognise by artwork',
       'Scan a card and the app finds it by its picture, then you confirm. '
-          'Works when the code is hard to read.',
+          'Free for Magic (10 a day). Pro: every game, no limit.',
     ),
     (
       Icons.cloud_download_rounded,

@@ -24,6 +24,8 @@ class SettingsStore extends ChangeNotifier {
   final Set<String> _hiddenGames = {};
   final Map<String, int> _labelColors = {};
   bool _isPro = false;
+  String _artDay = '';
+  int _artCount = 0;
   String _language = AppLanguage.system;
   AppSkin _skin = AppSkin.classic;
 
@@ -46,6 +48,8 @@ class SettingsStore extends ChangeNotifier {
       final order = json['gameOrder'];
       if (order is List) _gameOrder = order.whereType<String>().toList();
       _isPro = json['isPro'] == true;
+      _artDay = json['artDay'] as String? ?? '';
+      _artCount = (json['artCount'] as num?)?.toInt() ?? 0;
       _skin = AppSkin.byName(json['skin'] as String?);
       final lang = json['language'];
       if (lang is String && (lang == 'en' || lang == 'de')) _language = lang;
@@ -73,6 +77,32 @@ class SettingsStore extends ChangeNotifier {
   AppSkin get skin => _skin;
 
   AppSkin get activeSkin => _isPro ? _skin : AppSkin.classic;
+
+  /// Free artwork scans a day for Magic (Scryfall does not allow its data
+  /// to be put behind a paywall, so Magic gets a free daily allowance).
+  static const freeMagicArtScansPerDay = 10;
+
+  static String _today() {
+    final n = DateTime.now();
+    return '${n.year}-${n.month}-${n.day}';
+  }
+
+  /// How many free Magic artwork scans are left today.
+  int get magicArtScansLeft {
+    final used = _artDay == _today() ? _artCount : 0;
+    return (freeMagicArtScansPerDay - used).clamp(0, freeMagicArtScansPerDay);
+  }
+
+  /// Counts one Magic artwork scan for today.
+  void useMagicArtScan() {
+    final today = _today();
+    if (_artDay != today) {
+      _artDay = today;
+      _artCount = 0;
+    }
+    _artCount++;
+    _save();
+  }
 
   void setSkin(AppSkin value) {
     if (_skin == value) return;
@@ -181,6 +211,8 @@ class SettingsStore extends ChangeNotifier {
       'hiddenGames': _hiddenGames.toList(),
       'labelColors': _labelColors,
       'isPro': _isPro,
+      'artDay': _artDay,
+      'artCount': _artCount,
       'language': _language,
       'skin': _skin.name,
     });

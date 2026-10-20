@@ -152,7 +152,28 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     final store = CollectionScope.of(context);
     final catalog = CatalogScope.of(context);
     final gameId = _gameId;
+    final settings = SettingsScope.of(context);
     try {
+      // Artwork scan: free for Magic (10 a day), Pro for the other games.
+      if (_byArt && !settings.isPro) {
+        if (gameId != 'magic') {
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => const ProScreen(),
+          ));
+          return;
+        }
+        if (settings.magicArtScansLeft <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'You used your 10 free artwork scans for today. Scan by card number, or come back tomorrow.',
+              ),
+            ),
+          );
+          return;
+        }
+        settings.useMagicArtScan();
+      }
       final shot = await camera.takePicture();
 
       // Read the text on the card.
@@ -406,13 +427,14 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(width: 6),
                   ChoiceChip(
-                    avatar: SettingsScope.of(context).isPro
+                    avatar: SettingsScope.of(context).isPro || _gameId == 'magic'
                         ? null
                         : const Icon(Icons.lock_outline_rounded, size: 16),
-                    label: const Text('Artwork · Pro'),
+                    label: const Text('Artwork'),
                     selected: _byArt,
                     onSelected: (_) {
-                      if (!SettingsScope.of(context).isPro) {
+                      if (!SettingsScope.of(context).isPro &&
+                          _gameId != 'magic') {
                         Navigator.of(context).push(MaterialPageRoute<void>(
                           builder: (_) => const ProScreen(),
                         ));
