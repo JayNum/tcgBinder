@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:tcg_binder/catalog/sources/pokemon_source.dart';
 import 'package:tcg_binder/models/catalog.dart';
 import 'package:tcg_binder/scanner/art_hash.dart';
 import 'package:tcg_binder/services/card_text.dart';
@@ -60,35 +59,6 @@ void main() {
     expect(CardTextService.languagesFor(card('magic')).length, greaterThan(5));
     expect(CardTextService.languagesFor(card('pokemon')).length, greaterThan(5));
     expect(CardTextService.languagesFor(card('onepiece')), ['English']);
-  });
-
-  test('Pokémon cards keep their English text and picture', () {
-    const set = CardSet(
-      id: 'pokemon-base1',
-      gameId: 'pokemon',
-      sourceId: 'base1',
-      code: 'BS',
-      name: 'Base',
-      order: 0,
-      printedTotal: 102,
-    );
-    final cards = PokemonSource.parseCards([
-      {
-        'id': 'base1-4',
-        'name': 'Charizard',
-        'number': '4',
-        'rarity': 'Rare Holo',
-        'images': {'large': 'https://example.com/4.png'},
-        'attacks': [
-          {'name': 'Fire Spin', 'damage': '100', 'text': 'Discard 2 Energy.'}
-        ],
-      }
-    ], set);
-    expect(cards.single.imageUrl, 'https://example.com/4.png');
-    expect(cards.single.text, 'Fire Spin 100: Discard 2 Energy.');
-    final back = CatalogCard.fromJson(cards.single.toJson());
-    expect(back.text, cards.single.text);
-    expect(back.imageUrl, cards.single.imageUrl);
   });
 
   test('the same artwork is close, another artwork is far', () {

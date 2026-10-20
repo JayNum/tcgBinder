@@ -15,7 +15,7 @@ const games = <Game>[
     name: 'Pokémon',
     cardmarketSlug: 'Pokemon',
     codeStyle: CardCodeStyle.slashed,
-    dataSource: 'Pokémon TCG API (pokemontcg.io)',
+    dataSource: 'TCGdex (tcgdex.net)',
     hasEditions: true,
   ),
   Game(

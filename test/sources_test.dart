@@ -100,39 +100,33 @@ void main() {
     });
   });
 
-  group('Pokémon (pokemontcg.io)', () {
+  group('Pokémon (tcgdex.net)', () {
     test('sets and cards', () {
       final sets = PokemonSource.parseSets([
         {
           'id': 'base1',
-          'name': 'Base',
-          'series': 'Base',
-          'printedTotal': 102,
-          'total': 102,
-          'ptcgoCode': 'BS',
-          'releaseDate': '1999/01/09',
+          'name': 'Base Set',
+          'cardCount': {'total': 102, 'official': 102},
         },
       ]);
       final base = sets.single;
       expect(base.id, 'pokemon-base1');
-      expect(base.code, 'BS');
-      expect(base.released, DateTime(1999, 1, 9));
+      expect(base.code, 'BASE1');
       expect(base.printedTotal, 102);
 
       final cards = PokemonSource.parseCards([
         {
           'id': 'base1-4',
+          'localId': '4',
           'name': 'Charizard',
-          'number': '4',
-          'rarity': 'Rare Holo',
-          'tcgplayer': {'url': 'https://prices.pokemontcg.io/tcgplayer/base1-4'},
-          'cardmarket': {'url': 'https://prices.pokemontcg.io/cardmarket/base1-4'},
+          'image': 'https://assets.tcgdex.net/en/base/base1/4',
         },
       ], base);
       final charizard = cards.single;
+      expect(charizard.id, 'pokemon-base1-4');
       expect(charizard.code, '4/102');
-      expect(charizard.cardmarketQuery, 'Charizard BS 4');
-      expect(charizard.cardmarketUrl, contains('cardmarket/base1-4'));
+      expect(charizard.cardmarketQuery, 'Charizard 4');
+      expect(charizard.imageUrl, 'https://assets.tcgdex.net/en/base/base1/4/low.png');
     });
   });
 

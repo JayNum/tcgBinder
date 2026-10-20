@@ -50,7 +50,7 @@ Everything stays on the phone.
 | Game | Source |
 |---|---|
 | One Piece | optcgapi.com |
-| Pokémon | api.pokemontcg.io |
+| Pokémon | api.tcgdex.net |
 | Magic | api.scryfall.com |
 | Lorcana | api.lorcast.com |
 | Riftbound | api.riftcodex.com |

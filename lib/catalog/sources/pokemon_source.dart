@@ -1,25 +1,27 @@
 import '../../models/catalog.dart';
 import 'source.dart';
 
-/// Pokémon TCG via api.pokemontcg.io (no key needed for normal use).
+/// Pokémon TCG via api.tcgdex.net (open data, MIT licensed, no key).
+///
+/// The card list of a set only has the number, name and picture; the
+/// abilities and attacks are fetched when the user opens a card's text
+/// (see CardTextService), so a set downloads with one request.
 class PokemonSource extends CatalogSource {
   PokemonSource(super.client);
 
-  static const _host = 'api.pokemontcg.io';
+  static const _host = 'api.tcgdex.net';
 
   @override
   String get gameId => 'pokemon';
 
   @override
   Future<List<CardSet>> fetchSets() async {
-    final json = await getJson(Uri.https(_host, '/v2/sets', {
-      'pageSize': '250',
-      'orderBy': 'releaseDate',
-    }));
-    final rows = json is Map ? asMapList(json['data']) : const <Map<String, Object?>>[];
-    return parseSets(rows);
+    final json = await getJson(Uri.https(_host, '/v2/en/sets'));
+    return parseSets(asMapList(json));
   }
 
+  /// The list comes oldest first; sets have no date in the short list, so
+  /// the position in the list is used for sorting.
   static List<CardSet> parseSets(List<Map<String, Object?>> rows) {
     final sets = <CardSet>[];
     var order = 0;
@@ -27,19 +29,18 @@ class PokemonSource extends CatalogSource {
       final id = s.str('id');
       if (id.isEmpty) continue;
       final name = s.str('name');
-      final ptcgo = s.strOrNull('ptcgoCode');
       sets.add(CardSet(
         id: 'pokemon-$id',
         gameId: 'pokemon',
         sourceId: id,
-        code: ptcgo ?? id.toUpperCase(),
+        code: id.toUpperCase(),
         name: name,
         order: order++,
         released: parseDate(s.strOrNull('releaseDate')),
         kind: name.toLowerCase().contains('promo')
             ? SetKind.promo
             : SetKind.booster,
-        printedTotal: (s['printedTotal'] as num?)?.toInt(),
+        printedTotal: (s.obj('cardCount')['official'] as num?)?.toInt(),
       ));
     }
     return sets;
@@ -47,41 +48,11 @@ class PokemonSource extends CatalogSource {
 
   @override
   Future<List<CatalogCard>> fetchCards(CardSet set) async {
-    final rows = <Map<String, Object?>>[];
-    var page = 1;
-    while (true) {
-      final json = await getJson(Uri.https(_host, '/v2/cards', {
-        'q': 'set.id:${set.sourceId}',
-        'pageSize': '250',
-        'page': '$page',
-        'select':
-            'id,name,number,rarity,tcgplayer,cardmarket,images,abilities,attacks,rules',
-      }));
-      if (json is! Map) break;
-      final data = asMapList(json['data']);
-      rows.addAll(data);
-      final total = (json['totalCount'] as num?)?.toInt() ?? rows.length;
-      if (data.isEmpty || rows.length >= total) break;
-      page++;
-    }
+    final json = await getJson(Uri.https(_host, '/v2/en/sets/${set.sourceId}'));
+    final rows = json is Map
+        ? asMapList(json['cards'])
+        : const <Map<String, Object?>>[];
     return parseCards(rows, set);
-  }
-
-  /// Abilities, attacks and rules of a card as plain text.
-  static String? pokemonText(Map<String, Object?> c) {
-    final lines = <String>[];
-    for (final a in asMapList(c['abilities'])) {
-      lines.add('Ability – ${a.str('name')}: ${a.str('text')}');
-    }
-    for (final a in asMapList(c['attacks'])) {
-      final damage = a.str('damage');
-      final head = damage.isEmpty ? a.str('name') : '${a.str('name')} $damage';
-      final text = a.str('text');
-      lines.add(text.isEmpty ? head : '$head: $text');
-    }
-    final rules = c['rules'];
-    if (rules is List) lines.addAll(rules.map((r) => r.toString()));
-    return lines.isEmpty ? null : lines.join('\n');
   }
 
   static List<CatalogCard> parseCards(
@@ -89,15 +60,15 @@ class PokemonSource extends CatalogSource {
     CardSet set,
   ) {
     final cards = <CatalogCard>[];
-    final hasCode = set.code != set.sourceId.toUpperCase();
     for (final c in rows) {
       final id = c.str('id');
-      final number = c.str('number');
+      final number = c.str('localId');
       if (id.isEmpty || number.isEmpty) continue;
       final name = c.str('name');
       final numeric = RegExp(r'^\d+$').hasMatch(number);
       final total = set.printedTotal;
       final code = numeric && total != null ? '$number/$total' : number;
+      final image = c.strOrNull('image');
       cards.add(CatalogCard(
         id: 'pokemon-$id',
         setId: set.id,
@@ -105,15 +76,10 @@ class PokemonSource extends CatalogSource {
         code: code,
         sortNumber: parseSortNumber(number),
         name: name,
-        rarity: c.str('rarity'),
         versionKey: 'pokemon|$id',
-        // Cardmarket names Pokémon cards like "Charizard (BS 4)".
-        cardmarketQuery: hasCode ? '$name ${set.code} $number' : name,
-        cardmarketUrl: c.obj('cardmarket').strOrNull('url'),
-        tcgplayerUrl: c.obj('tcgplayer').strOrNull('url'),
-        imageUrl: c.obj('images').strOrNull('large') ??
-            c.obj('images').strOrNull('small'),
-        text: pokemonText(c),
+        cardmarketQuery: '$name $number',
+        // Only used in the background to recognise artwork, never shown.
+        imageUrl: image == null ? null : '$image/low.png',
       ));
     }
     cards.sort(compareBinderOrder);
