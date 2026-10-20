@@ -33,7 +33,7 @@ class TcgBinderApp extends StatelessWidget {
           child: CollectionScope(
             store: collection,
             child: MaterialApp(
-              title: 'TCG Binder',
+              title: 'leBinder',
               debugShowCheckedModeBanner: false,
               theme: buildTheme(Brightness.light),
               darkTheme: buildTheme(Brightness.dark),

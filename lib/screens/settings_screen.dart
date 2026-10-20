@@ -163,7 +163,7 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 Center(
                   child: Text(
-                    'TCG Binder 0.3.0 · Card names and data © their publishers',
+                    'leBinder 0.3.0 · Card names and data © their publishers',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12, color: tokens.labelMissing),
                   ),

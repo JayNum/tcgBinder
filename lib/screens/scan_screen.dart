@@ -123,7 +123,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       setState(() {
         _cameraError = e.code == 'CameraAccessDenied' ||
                 e.code == 'CameraAccessDeniedWithoutPrompt'
-            ? 'Camera access is off. Allow it for TCG Binder in your phone '
+            ? 'Camera access is off. Allow it for leBinder in your phone '
                 'settings to scan cards.'
             : 'The camera could not start (${e.description ?? e.code}).';
       });
