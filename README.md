@@ -1,4 +1,4 @@
-# leBinder
+# Le Binder
 
 A digital binder for trading card collections: One Piece, Pokémon, Magic,
 Lorcana and Riftbound. Every set is its own binder with 9-pocket pages;

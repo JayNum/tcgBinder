@@ -59,7 +59,7 @@ class ImpressumScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'leBinder is a private project. Card data comes from the '
+              'Le Binder is a private project. Card data comes from the '
               'public databases listed in Settings. Card names and images '
               'belong to their respective owners; this app is not affiliated '
               'with them.',

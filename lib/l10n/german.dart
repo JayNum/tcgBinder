@@ -255,8 +255,8 @@ const Map<String, String> _de = {
   'The photo could not be read.': 'Das Foto konnte nicht gelesen werden.',
   'No card lists of this game are on your phone yet. Open a binder of this game once, then try again.':
       'Von diesem Spiel sind noch keine Kartenlisten auf deinem Handy. Öffne einmal ein Binder dieses Spiels und versuche es dann erneut.',
-  'Camera access is off. Allow it for leBinder in your phone settings to scan cards.':
-      'Der Kamerazugriff ist aus. Erlaube ihn für leBinder in den Handy-Einstellungen, um Karten zu scannen.',
+  'Camera access is off. Allow it for Le Binder in your phone settings to scan cards.':
+      'Der Kamerazugriff ist aus. Erlaube ihn für Le Binder in den Handy-Einstellungen, um Karten zu scannen.',
   'No camera found on this device.': 'Auf diesem Gerät wurde keine Kamera gefunden.',
 
   // Settings
@@ -278,14 +278,14 @@ const Map<String, String> _de = {
   'Frees space. Lists download again when you open a binder. Your collection stays.':
       'Gibt Speicher frei. Die Listen werden beim Öffnen eines Binders neu geladen. Deine Sammlung bleibt.',
   'Downloaded card lists deleted.': 'Geladene Kartenlisten gelöscht.',
-  'leBinder 0.3.0 · Card names and data © their publishers':
-      'leBinder 0.3.0 · Kartennamen und Daten © ihre Herausgeber',
+  'Le Binder 0.3.0 · Card names and data © their publishers':
+      'Le Binder 0.3.0 · Kartennamen und Daten © ihre Herausgeber',
   'App language': 'App-Sprache',
   'Same as phone': 'Wie das Handy',
   'Deutsch': 'Deutsch',
 
   // Pro
-  'leBinder Pro': 'leBinder Pro',
+  'Le Binder Pro': 'Le Binder Pro',
   'Get more from your binders': 'Hol mehr aus deinen Bindern heraus',
   'Your collection stays free and on your phone. Pro adds tools for people with big collections.':
       'Deine Sammlung bleibt kostenlos und auf deinem Handy. Pro bringt Werkzeuge für große Sammlungen.',
@@ -327,7 +327,7 @@ const Map<String, String> _de = {
   'Name': 'Name',
   'Address': 'Adresse',
   'E-mail': 'E-Mail',
-  'leBinder is a private project. Card data comes from the public databases listed in Settings. Card names and images belong to their respective owners; this app is not affiliated with them.':
-      'leBinder ist ein privates Projekt. Die Kartendaten stammen aus den in den Einstellungen genannten öffentlichen Datenbanken. Kartennamen und Bilder gehören ihren jeweiligen Inhabern; diese App steht in keiner Verbindung zu ihnen.',
+  'Le Binder is a private project. Card data comes from the public databases listed in Settings. Card names and images belong to their respective owners; this app is not affiliated with them.':
+      'Le Binder ist ein privates Projekt. Die Kartendaten stammen aus den in den Einstellungen genannten öffentlichen Datenbanken. Kartennamen und Bilder gehören ihren jeweiligen Inhabern; diese App steht in keiner Verbindung zu ihnen.',
   'Austria': 'Österreich',
 };

@@ -6,7 +6,7 @@ import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ios.dart';
 
-/// What leBinder Pro gives, and the two plans. Purchases are not switched
+/// What Le Binder Pro gives, and the two plans. Purchases are not switched
 /// on yet: the button explains that.
 class ProScreen extends StatefulWidget {
   const ProScreen({super.key});
@@ -64,7 +64,7 @@ class _ProScreenState extends State<ProScreen> {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     return Scaffold(
-      appBar: AppBar(title: const Text('leBinder Pro')),
+      appBar: AppBar(title: const Text('Le Binder Pro')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
