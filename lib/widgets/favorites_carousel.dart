@@ -136,7 +136,12 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
   Duration _last = Duration.zero;
 
   /// Position of the ring, in cards. Card `i` is in front when `_pos == i`.
-  double _pos = 0;
+  final ValueNotifier<double> _pos = ValueNotifier<double>(0);
+
+  /// Faces are built once and reused every frame, so turning the ring only
+  /// moves already painted cards.
+  List<Widget> _faces = const [];
+  List<FavoriteItem>? _facesFor;
 
   /// Current speed in cards per second; eases back to the automatic speed
   /// after a flick.
@@ -175,6 +180,7 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
   @override
   void dispose() {
     _ticker.dispose();
+    _pos.dispose();
     super.dispose();
   }
 
@@ -193,12 +199,12 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
     // Ease the speed back to the slow automatic turn.
     _speed += (rest - _speed) * (1 - math.exp(-1.6 * dt));
     if ((_speed - rest).abs() < 0.001) _speed = rest;
-    setState(() => _pos += _speed * dt);
+    _pos.value += _speed * dt;
   }
 
   int get _frontIndex {
     final n = widget.items.length;
-    return ((_pos.round() % n) + n) % n;
+    return ((_pos.value.round() % n) + n) % n;
   }
 
   @override
@@ -213,15 +219,18 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
         final cardWidth = math.min(width * 0.52, widget.height * 0.62);
         final radius = width * 0.36;
 
-        // Distance of every card from the front, wrapped around the ring.
-        final placed = <({int index, double d})>[];
-        for (var i = 0; i < n; i++) {
-          var d = (i - _pos) % n;
-          if (d > n / 2) d -= n;
-          if (d.abs() * _step < 1.5) placed.add((index: i, d: d));
+        if (!identical(_facesFor, items)) {
+          _facesFor = items;
+          _faces = [
+            for (final item in items)
+              RepaintBoundary(
+                child: SizedBox(
+                  width: cardWidth,
+                  child: ExcludeSemantics(child: CardFace(item: item)),
+                ),
+              ),
+          ];
         }
-        // Far cards first, so the nearest one is painted on top.
-        placed.sort((a, b) => b.d.abs().compareTo(a.d.abs()));
 
         return Semantics(
           label: 'Favorite cards, $n. Swipe to turn, double tap to open.',
@@ -232,7 +241,7 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
               _wake();
             },
             onHorizontalDragUpdate: (details) =>
-                setState(() => _pos -= details.delta.dx / _pixelsPerCard),
+                _pos.value -= details.delta.dx / _pixelsPerCard,
             onHorizontalDragEnd: (details) {
               _dragging = false;
               _speed = (-(details.primaryVelocity ?? 0) / _pixelsPerCard)
@@ -254,12 +263,27 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
             child: SizedBox(
               height: widget.height,
               width: width,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  for (final p in placed)
-                    _positioned(items[p.index], p.d, cardWidth, radius),
-                ],
+              child: ValueListenableBuilder<double>(
+                valueListenable: _pos,
+                builder: (context, pos, _) {
+                  // Distance of every card from the front, wrapped around
+                  // the ring.
+                  final placed = <({int index, double d})>[];
+                  for (var i = 0; i < n; i++) {
+                    var d = (i - pos) % n;
+                    if (d > n / 2) d -= n;
+                    if (d.abs() * _step < 1.5) placed.add((index: i, d: d));
+                  }
+                  // Far cards first, so the nearest one is painted on top.
+                  placed.sort((a, b) => b.d.abs().compareTo(a.d.abs()));
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      for (final p in placed)
+                        _positioned(_faces[p.index], p.d, radius),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -268,29 +292,34 @@ class _FavoritesCarouselState extends State<FavoritesCarousel>
     );
   }
 
-  Widget _positioned(
-    FavoriteItem item,
-    double d,
-    double cardWidth,
-    double radius,
-  ) {
+  Widget _positioned(Widget face, double d, double radius) {
     final angle = d * _step;
     final depth = math.cos(angle).clamp(0.0, 1.0).toDouble();
     final scale = 0.55 + 0.45 * depth;
     final tilt = Matrix4.rotationY(-angle * 0.8)..setEntry(3, 2, 0.0012);
+    // Cards further back are darkened instead of faded: no extra layer.
+    final shade = (1 - depth) * 0.55;
     return Transform.translate(
       offset: Offset(math.sin(angle) * radius, 0),
       child: Transform.scale(
         scale: scale,
-        child: Opacity(
-          opacity: (0.35 + 0.65 * depth).clamp(0.0, 1.0).toDouble(),
-          child: Transform(
-            alignment: Alignment.center,
-            transform: tilt,
-            child: SizedBox(
-              width: cardWidth,
-              child: ExcludeSemantics(child: CardFace(item: item)),
-            ),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: tilt,
+          child: Stack(
+            children: [
+              face,
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.black.withValues(alpha: shade),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
