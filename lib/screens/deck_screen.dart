@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart' hide Text;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -174,7 +176,8 @@ class _Stat extends StatelessWidget {
   }
 }
 
-/// A small card picture: the card database's image, or a plain tile.
+/// A small card picture: the user's own photo when they have one, otherwise
+/// a grey placeholder. Pictures from card databases are never shown.
 class _Thumb extends StatelessWidget {
   const _Thumb({required this.card, this.dim = false});
 
@@ -184,35 +187,24 @@ class _Thumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.binder;
-    final url = card.imageUrl;
-    Widget child = DecoratedBox(
+    final path = CollectionScope.of(context).entryFor(card.id)?.photoPath;
+    final placeholder = DecoratedBox(
       decoration: BoxDecoration(
-        color: tokens.pocket,
+        color: dim ? tokens.divider : tokens.pocket,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: tokens.pocketBorder, width: 0.5),
       ),
       child: const SizedBox.expand(),
     );
-    if (url != null) {
+    Widget child = placeholder;
+    if (path != null && File(path).existsSync()) {
       child = ClipRRect(
         borderRadius: BorderRadius.circular(4),
-        child: Image.network(
-          url,
+        child: Image.file(
+          File(path),
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => child,
+          errorBuilder: (_, __, ___) => placeholder,
         ),
-      );
-    }
-    if (dim) {
-      // Grey and see-through: a card the user does not have.
-      child = ColorFiltered(
-        colorFilter: const ColorFilter.matrix(<double>[
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0, 0, 0, 1, 0,
-        ]),
-        child: Opacity(opacity: 0.55, child: child),
       );
     }
     return SizedBox(
@@ -408,7 +400,7 @@ class _AddRow extends StatelessWidget {
     return InkWell(
       onTap: () => decks.add(deckId, hit.card),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+        padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
         child: Row(
           children: [
             _Thumb(card: hit.card, dim: owned == 0),
@@ -453,7 +445,21 @@ class _AddRow extends StatelessWidget {
                   ),
                 ),
               ),
-            Icon(Icons.add_circle_rounded, color: context.accent),
+            if (inDeck > 0)
+              IconButton(
+                tooltip: tr('One less'),
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.remove_circle_outline_rounded,
+                    color: context.accent),
+                onPressed: () =>
+                    decks.setQuantity(deckId, hit.card.id, inDeck - 1),
+              ),
+            IconButton(
+              tooltip: tr('One more'),
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.add_circle_rounded, color: context.accent),
+              onPressed: () => decks.add(deckId, hit.card),
+            ),
           ],
         ),
       ),
