@@ -320,8 +320,8 @@ const Map<String, String> _de = {
   'No banners and no daily video. Just your cards.':
       'Keine Banner und kein tägliches Video. Nur deine Karten.',
   'Card text in every language': 'Kartentext in jeder Sprache',
-  'Read the printed card text in German, French, Japanese and more (Magic and Pokémon).':
-      'Lies den gedruckten Kartentext auf Deutsch, Französisch, Japanisch und mehr (Magic und Pokémon).',
+  'Read the printed card text in German, French, Japanese and more (Pokémon; Magic is free).':
+      'Lies den gedruckten Kartentext auf Deutsch, Französisch, Japanisch und mehr (Pokémon; bei Magic kostenlos).',
   'Recognise by artwork': 'Per Motiv erkennen',
   'Scan a card and the app finds it by its picture, then you confirm. Works when the code is hard to read.':
       'Scanne eine Karte, die App findet sie über ihr Bild, du bestätigst. Funktioniert auch, wenn der Code schwer lesbar ist.',

@@ -9,7 +9,8 @@ import '../theme/app_theme.dart';
 import 'ios.dart';
 
 /// "Card text": an expandable block on the card page with the rules text.
-/// English is free; the other languages are a Pro feature.
+/// English is free; the other languages are a Pro feature, except for Magic:
+/// Scryfall's rules do not allow its data behind a paywall.
 class CardTextSection extends StatefulWidget {
   const CardTextSection({
     super.key,
@@ -46,8 +47,11 @@ class _CardTextSectionState extends State<CardTextSection> {
     if (owned != null && _languages.contains(owned)) _language = owned;
   }
 
+  bool _locked(String language, bool isPro) =>
+      language != 'English' && !isPro && widget.card.gameId != 'magic';
+
   Future<void> _select(String language, bool isPro) async {
-    if (language != 'English' && !isPro) {
+    if (_locked(language, isPro)) {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const ProScreen()),
       );
@@ -72,8 +76,8 @@ class _CardTextSectionState extends State<CardTextSection> {
   Widget build(BuildContext context) {
     final tokens = context.binder;
     final isPro = SettingsScope.of(context).isPro;
-    // A free user always reads English.
-    final language = isPro ? _language : 'English';
+    // A free user reads English, except for Magic where every language is free.
+    final language = _locked(_language, isPro) ? 'English' : _language;
     final text = language == 'English' && widget.card.text != null
         ? CardTextService.english(widget.card)
         : _loaded[language];
@@ -111,7 +115,7 @@ class _CardTextSectionState extends State<CardTextSection> {
                         PillChip(
                           label: l,
                           selected: l == language,
-                          icon: l != 'English' && !isPro
+                          icon: _locked(l, isPro)
                               ? Icons.lock_outline_rounded
                               : null,
                           onTap: () => _select(l, isPro),

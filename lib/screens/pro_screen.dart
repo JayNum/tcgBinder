@@ -24,7 +24,7 @@ class _ProScreenState extends State<ProScreen> {
       Color(0xFF5AC8FA),
       'Card text in every language',
       'Read the printed card text in German, French, Japanese and more '
-          '(Magic and Pokémon).',
+          '(Pokémon; Magic is free).',
     ),
     (
       Icons.image_search_rounded,
