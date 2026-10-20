@@ -186,10 +186,11 @@ void main() {
       settings: SettingsStore(),
       catalog: catalog,
     ));
-    await tester.tap(find.text('Search').last);
+    await openBinders(tester);
+    await tester.tap(find.byIcon(CupertinoIcons.search));
     await tester.pumpAndSettle();
 
-    // Search the cards themselves, from the Search tab.
+    // Search the cards themselves, from the search button in Binders.
     await tester.enterText(find.byType(CupertinoSearchTextField), 'ace');
     await tester.pumpAndSettle();
     expect(find.text('2 cards'.toUpperCase()), findsOneWidget);

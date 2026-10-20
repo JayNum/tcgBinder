@@ -8,10 +8,10 @@ import '../theme/app_theme.dart';
 import 'binders_screen.dart';
 import 'favorites_screen.dart';
 import 'scan_screen.dart';
-import 'search_screen.dart';
+import 'decks_screen.dart';
 import 'settings_screen.dart';
 
-/// The app's frame: Favorites, Scan, Binders and Settings along the bottom.
+/// The app's frame: Favorites, Binders, Scan, Decks and Settings along the bottom.
 ///
 /// Every tab keeps its own stack of screens, so the bar (and the Scan
 /// button) stays on screen when you open a game, a binder or a card.
@@ -26,7 +26,7 @@ class _HomeShellState extends State<HomeShell> {
   static const _roots = <Widget>[
     FavoritesScreen(),
     BindersScreen(),
-    SearchScreen(),
+    DecksScreen(),
     SettingsScreen(),
   ];
 
@@ -159,9 +159,9 @@ class _TabBar extends StatelessWidget {
                   // The big Scan button, right in the middle of the bar.
                   Expanded(child: Center(child: _ScanButton(onTap: onScan))),
                   _TabItem(
-                    icon: Icons.search_rounded,
-                    activeIcon: Icons.search_rounded,
-                    label: 'Search',
+                    icon: Icons.style_outlined,
+                    activeIcon: Icons.style_rounded,
+                    label: 'Decks',
                     color: const Color(0xFF34C759),
                     selected: selected == 2,
                     onTap: () => onSelect(2),

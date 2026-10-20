@@ -17,7 +17,7 @@ Everything stays on the phone.
   additions. With more than 5 the strip scrolls sideways and loops.
 - **Binders tab:** one tile per game (long-press a tile to use your own image,
   Arrange to reorder or hide games).
-- **Search tab:** find single cards by name, code, set or rarity (all
+- **Search (button at the top left of Binders):** find single cards by name, code, set or rarity (all
   downloaded sets). Give cards your own coloured labels ("Trade", "Deck"...)
   on the card page (touch and hold a label to change its colour) and switch
   labels on as filters.
@@ -89,5 +89,5 @@ lib/
 
 ## Decks and skins (Pro)
 
-- **Decks**: Binders → Decks. Free: 1 deck per game. Pro: unlimited. Any card of the game can go in a deck; cards you do not own are greyed out with a per-card Buy action (Cardmarket, TCGplayer, eBay). Ownership is counted per exact printing.
+- **Decks**: the Decks tab. Free: 1 deck per game. Pro: unlimited. Any card of the game can go in a deck; cards you do not own are greyed out with a per-card Buy action (Cardmarket, TCGplayer, eBay). Ownership is counted per exact printing.
 - **Skins**: Settings → Look. Classic is free; Vault and Playmat are Pro (palette-level skins).
