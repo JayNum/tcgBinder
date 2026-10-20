@@ -19,7 +19,6 @@ dependencies:
   camera: any
   google_mlkit_text_recognition: any
   image: any
-  google_mobile_ads: any
 
 dev_dependencies:
   flutter_test:

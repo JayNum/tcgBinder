@@ -261,8 +261,8 @@ const Map<String, String> _de = {
 
   // Settings
   'Upgrade to Pro': 'Auf Pro upgraden',
-  'No ads, card text in every language, artwork scan, backup':
-      'Keine Werbung, Kartentext in jeder Sprache, Motiverkennung, Backup',
+  'Card text in every language, artwork scan, backup':
+      'Kartentext in jeder Sprache, Motiverkennung, Backup',
   'Your collection and photos are stored only on this phone. There is no account.':
       'Deine Sammlung und Fotos werden nur auf diesem Handy gespeichert. Es gibt kein Konto.',
   'Ads & privacy': 'Werbung & Datenschutz',

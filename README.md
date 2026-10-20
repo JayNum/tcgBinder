@@ -23,9 +23,7 @@ Everything stays on the phone.
   labels on as filters.
 - **Settings:** Pro upgrade screen (backup & restore, binder looks, batch
   scanning; purchases are not connected yet).
-- **Ads, kept low:** one small banner above the tab bar on every screen and
-  one full-screen video at most once a day (when you add a card). Pro removes
-  both. Uses Google's test ad IDs until you put in your own (see `lib/services/ads.dart`).
+- **No ads.** The app shows no advertising.
 - **Card text (Pro for other languages):** an expandable "Card text" block on
   every card. English is free; German, French, Japanese and more come from
   Scryfall (Magic) and TCGdex (Pokémon). Other games only publish English.

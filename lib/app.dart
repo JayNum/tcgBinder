@@ -5,7 +5,6 @@ import 'catalog/catalog_scope.dart';
 import 'data/collection_store.dart';
 import 'data/settings_store.dart';
 import 'screens/home_shell.dart';
-import 'services/ads.dart';
 import 'theme/app_theme.dart';
 
 class TcgBinderApp extends StatelessWidget {
@@ -14,19 +13,15 @@ class TcgBinderApp extends StatelessWidget {
     required this.collection,
     required this.settings,
     required this.catalog,
-    required this.ads,
   });
 
   final CollectionStore collection;
   final SettingsStore settings;
   final CatalogRepository catalog;
-  final AdsService ads;
 
   @override
   Widget build(BuildContext context) {
-    return AdsScope(
-      ads: ads,
-      child: CatalogScope(
+    return CatalogScope(
         repository: catalog,
         child: SettingsScope(
           store: settings,
@@ -42,7 +37,6 @@ class TcgBinderApp extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }

@@ -20,12 +20,6 @@ class _ProScreenState extends State<ProScreen> {
 
   static const _features = <(IconData, Color, String, String)>[
     (
-      Icons.block_rounded,
-      Color(0xFF34C759),
-      'No ads',
-      'No banners and no daily video. Just your cards.',
-    ),
-    (
       Icons.translate_rounded,
       Color(0xFF5AC8FA),
       'Card text in every language',

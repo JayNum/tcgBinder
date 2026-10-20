@@ -4,7 +4,6 @@ import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 
 import '../l10n/l10n.dart';
-import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import 'binders_screen.dart';
 import 'favorites_screen.dart';
@@ -97,12 +96,6 @@ class _HomeShellState extends State<HomeShell> {
                   ],
                 ),
               ),
-            ),
-            // One banner for every screen, always above the tab bar, so it
-            // never covers (or is covered by) anything.
-            const ColoredBox(
-              color: Colors.transparent,
-              child: Center(child: BannerAdView()),
             ),
             _TabBar(selected: _tab, onSelect: _select, onScan: _scan),
           ],

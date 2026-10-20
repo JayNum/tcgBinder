@@ -24,7 +24,6 @@ class SettingsStore extends ChangeNotifier {
   final Map<String, int> _labelColors = {};
   bool _isPro = false;
   String _language = AppLanguage.system;
-  String? _lastFullScreenAd; // yyyy-mm-dd
 
   Future<void> load() async {
     _applyLanguage();
@@ -48,7 +47,6 @@ class SettingsStore extends ChangeNotifier {
       final lang = json['language'];
       if (lang is String && (lang == 'en' || lang == 'de')) _language = lang;
       _applyLanguage();
-      _lastFullScreenAd = json['lastFullScreenAd'] as String?;
       final colors = json['labelColors'];
       if (colors is Map) {
         colors.forEach((k, v) {
@@ -63,7 +61,7 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Pro removes ads and unlocks card text in every language and scanning
+  /// Pro unlocks card text in every language and scanning
   /// by artwork. (Purchases are not connected yet; the Pro screen has a test
   /// switch in debug builds.)
   bool get isPro => _isPro;
@@ -90,19 +88,6 @@ class SettingsStore extends ChangeNotifier {
     _save();
   }
 
-  static String _today() {
-    final n = DateTime.now();
-    return '${n.year}-${n.month.toString().padLeft(2, '0')}-'
-        '${n.day.toString().padLeft(2, '0')}';
-  }
-
-  /// True when today's full-screen video ad has not been shown yet.
-  bool get fullScreenAdDue => !_isPro && _lastFullScreenAd != _today();
-
-  void markFullScreenAdShown() {
-    _lastFullScreenAd = _today();
-    _save();
-  }
 
   /// The colour of a label: the one the user picked, or a steady default.
   Color labelColor(String label) {
@@ -183,7 +168,6 @@ class SettingsStore extends ChangeNotifier {
       'labelColors': _labelColors,
       'isPro': _isPro,
       'language': _language,
-      'lastFullScreenAd': _lastFullScreenAd,
     });
     f.parent
         .create(recursive: true)
