@@ -64,6 +64,25 @@ class PriceLinks {
     return parts.join(' ');
   }
 
+  /// TCGplayer lists cards with their code ("Charizard - 4/102",
+  /// "OP17-001"), so the code finds the exact card; adding a set name only
+  /// widens the results.
+  static String tcgplayerQuery({
+    required Game game,
+    required CatalogCard card,
+    required CardSet set,
+  }) {
+    final name = card.fullName.replaceAll(' - ', ' ');
+    switch (game.codeStyle) {
+      case CardCodeStyle.dashed:
+        return '${card.code} $name';
+      case CardCodeStyle.slashed:
+        return '$name ${card.code}';
+      case CardCodeStyle.number:
+        return '$name ${set.name}';
+    }
+  }
+
   static Uri forMarketplace(
     Marketplace marketplace, {
     required Game game,
@@ -85,7 +104,7 @@ class PriceLinks {
         final direct = card.tcgplayerUrl;
         if (direct != null) return Uri.parse(direct);
         return Uri.https('www.tcgplayer.com', '/search/all/product', {
-          'q': '${card.fullName.replaceAll(' - ', ' ')} ${set.name}',
+          'q': tcgplayerQuery(game: game, card: card, set: set),
         });
       case Marketplace.ebay:
         final host = _ebayHosts[countryCode?.toUpperCase()] ?? 'www.ebay.com';
