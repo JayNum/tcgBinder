@@ -646,7 +646,7 @@ class _ResultSheetState extends State<_ResultSheet> {
                           set: catalog.setById(card.setId),
                           owned: store.entryFor(card.id)?.quantity ?? 0,
                           selected: _selected?.id == card.id,
-                          showPicture: widget.byArtwork,
+                          showText: widget.byArtwork,
                           onTap: () => setState(() => _selected = card),
                         ),
                     ],
@@ -695,10 +695,10 @@ class _MatchTile extends StatelessWidget {
     required this.owned,
     required this.selected,
     required this.onTap,
-    this.showPicture = false,
+    this.showText = false,
   });
 
-  final bool showPicture;
+  final bool showText;
   final CatalogCard card;
   final CardSet? set;
   final int owned;
@@ -731,20 +731,6 @@ class _MatchTile extends StatelessWidget {
                   color: selected ? context.accent : tokens.muted,
                 ),
                 const SizedBox(width: 12),
-                if (showPicture && card.imageUrl != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.network(
-                      card.imageUrl!,
-                      width: 46,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const SizedBox(width: 46, height: 64),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -779,6 +765,22 @@ class _MatchTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 12, color: tokens.muted),
                       ),
+                      // Artwork matches show the card's text, so you can
+                      // confirm it without any picture.
+                      if (showText && (card.text ?? '').isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            card.text!,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.3,
+                              color: tokens.text,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
