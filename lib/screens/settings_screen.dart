@@ -110,26 +110,6 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const SectionHeader('About'),
-                GroupedSection(
-                  child: ListTile(
-                    leading: const _IconTile(
-                      Icons.info_outline_rounded,
-                      Color(0xFF8E8E93),
-                    ),
-                    title: const Text('Impressum'),
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: tokens.muted,
-                    ),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ImpressumScreen(),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
                 const SectionHeader('Card data'),
                 GroupedSection(
                   child: Column(
@@ -161,6 +141,29 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+                GroupedSection(
+                  child: ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    leading: const Icon(
+                      Icons.info_outline_rounded,
+                      size: 20,
+                      color: Color(0xFF8E8E93),
+                    ),
+                    title: const Text('About', style: TextStyle(fontSize: 15)),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: tokens.muted,
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ImpressumScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Center(
                   child: Text(
                     'Le Binder 0.3.0 · Card names and data © their publishers',

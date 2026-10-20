@@ -271,8 +271,7 @@ const Map<String, String> _de = {
       'Deine Einwilligung für personalisierte Werbung ändern',
   'There are no ad choices to make in your region.':
       'In deiner Region gibt es keine Werbeoptionen zur Auswahl.',
-  'About': 'Über',
-  'Impressum': 'Impressum',
+  'About': 'Impressum',
   'Card data': 'Kartendaten',
   'Delete downloaded card lists': 'Geladene Kartenlisten löschen',
   'Frees space. Lists download again when you open a binder. Your collection stays.':
