@@ -16,7 +16,7 @@ class ImpressumScreen extends StatelessWidget {
   static const country = 'Austria';
 
   /// Set this to your contact e-mail address.
-  static const contactEmail = '';
+  static const contactEmail = 'siriket.solutions@gmail.com';
 
   @override
   Widget build(BuildContext context) {
