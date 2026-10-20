@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../services/ads.dart';
+import 'impressum_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
 import '../widgets/ios.dart';
@@ -65,6 +66,26 @@ class SettingsScreen extends StatelessWidget {
                       color: tokens.muted,
                     ),
                     onTap: () => _privacyOptions(context),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const SectionHeader('About'),
+                GroupedSection(
+                  child: ListTile(
+                    leading: const _IconTile(
+                      Icons.info_outline_rounded,
+                      Color(0xFF8E8E93),
+                    ),
+                    title: const Text('Impressum'),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: tokens.muted,
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ImpressumScreen(),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
