@@ -15,6 +15,7 @@ import 'package:tcg_binder/theme/app_theme.dart';
 import 'package:tcg_binder/theme/label_colors.dart';
 import 'package:tcg_binder/widgets/favorites_carousel.dart';
 import 'package:tcg_binder/widgets/recent_strip.dart';
+import 'package:tcg_binder/services/ads.dart';
 import 'package:tcg_binder/services/price_links.dart';
 
 /// A tiny stand-in for a card database, so tests never go online.
@@ -93,6 +94,7 @@ void main() {
   }
 
   Widget buildApp(CollectionStore store) => TcgBinderApp(
+        ads: AdsService(enabled: false),
         collection: store,
         settings: SettingsStore(),
         catalog: CatalogRepository(
@@ -182,6 +184,7 @@ void main() {
       ..addLabel('op16-001', 'Trade');
 
     await tester.pumpWidget(TcgBinderApp(
+      ads: AdsService(enabled: false),
       collection: store,
       settings: SettingsStore(),
       catalog: catalog,
@@ -272,6 +275,7 @@ void main() {
     usePhoneScreen(tester);
     final settings = SettingsStore();
     await tester.pumpWidget(TcgBinderApp(
+      ads: AdsService(enabled: false),
       collection: CollectionStore(),
       settings: settings,
       catalog: CatalogRepository(sources: const {}, cacheDir: null),
@@ -300,12 +304,13 @@ void main() {
     await tester.tap(find.text('Settings').last);
     await tester.pumpAndSettle();
     expect(find.text('Upgrade to Pro'), findsOneWidget);
-    expect(find.textContaining('Privacy'), findsNothing); // no ads, no consent
+    expect(find.text('Privacy & ad choices', skipOffstage: false), findsOneWidget);
     await tester.tap(find.text('Upgrade to Pro'));
     await tester.pumpAndSettle();
-    expect(find.text('Backup & restore'), findsOneWidget);
-    expect(find.text('€2.99'), findsOneWidget);
-    expect(find.text('€29.99'), findsOneWidget);
+    expect(find.text('No ads'), findsOneWidget);
+    expect(find.text('Recognise by artwork', skipOffstage: false), findsOneWidget);
+    expect(find.text('€2.99', skipOffstage: false), findsOneWidget);
+    expect(find.text('€29.99', skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('recent strip only scrolls and loops with more than 5 cards',

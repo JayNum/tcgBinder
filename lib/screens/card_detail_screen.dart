@@ -12,6 +12,7 @@ import '../services/photos.dart';
 import '../services/price_links.dart';
 import '../theme/app_theme.dart';
 import '../widgets/card_photo.dart';
+import '../widgets/card_text_section.dart';
 import '../widgets/ios.dart';
 import '../widgets/label_widgets.dart';
 import '../widgets/pocket.dart';
@@ -130,6 +131,11 @@ class CardDetailScreen extends StatelessWidget {
           if (entry != null) _LabelsSection(entry: entry),
           if (entry != null) _YourCopy(entry: entry, game: game),
           const SizedBox(height: 16),
+          CardTextSection(
+            card: card,
+            set: set,
+            ownedLanguage: entry?.language,
+          ),
           const _SectionTitle('Check prices'),
           _Surface(
             child: Column(

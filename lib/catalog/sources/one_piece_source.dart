@@ -162,6 +162,8 @@ class OnePieceSource extends CatalogSource {
         reprint: set.kind != SetKind.promo && !own.any(code.startsWith),
         versionKey: 'onepiece|$code',
         cardmarketQuery: code,
+        imageUrl: row.strOrNull('card_image'),
+        text: row.strOrNull('card_text'),
       ));
     }
     cards.sort(compareBinderOrder);

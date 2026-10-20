@@ -119,7 +119,7 @@ class CollectionStore extends ChangeNotifier {
 
   /// Adds one copy of [card]; keeps the existing photo unless [photoPath]
   /// is given.
-  void addCopy(CatalogCard card, {String? photoPath}) {
+  void addCopy(CatalogCard card, {String? photoPath, String? language}) {
     final existing = _entries[card.id];
     if (existing == null) {
       _entries[card.id] = CollectionEntry(
@@ -128,6 +128,7 @@ class CollectionStore extends ChangeNotifier {
         gameId: card.gameId,
         addedAt: DateTime.now(),
         photoPath: photoPath,
+        language: language ?? 'English',
       );
     } else {
       _entries[card.id] = existing.copyWith(

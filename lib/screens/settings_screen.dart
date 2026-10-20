@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
+import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
 import '../widgets/ios.dart';
@@ -46,6 +47,24 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const SectionHeader('Ads & privacy'),
+                GroupedSection(
+                  child: ListTile(
+                    leading: const _IconTile(
+                      Icons.privacy_tip_rounded,
+                      Color(0xFF007AFF),
+                    ),
+                    title: const Text('Privacy & ad choices'),
+                    subtitle:
+                        const Text('Change your consent for personalised ads'),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: tokens.muted,
+                    ),
+                    onTap: () => _privacyOptions(context),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -93,6 +112,18 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _privacyOptions(BuildContext context) async {
+    final ads = AdsScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (await ads.hasPrivacyOptions()) {
+      ads.showPrivacyOptions();
+    } else {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('There are no ad choices to make in your region.'),
+      ));
+    }
   }
 
   Future<void> _clearCache(BuildContext context) async {

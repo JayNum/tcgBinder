@@ -54,7 +54,8 @@ class PokemonSource extends CatalogSource {
         'q': 'set.id:${set.sourceId}',
         'pageSize': '250',
         'page': '$page',
-        'select': 'id,name,number,rarity,tcgplayer,cardmarket',
+        'select':
+            'id,name,number,rarity,tcgplayer,cardmarket,images,abilities,attacks,rules',
       }));
       if (json is! Map) break;
       final data = asMapList(json['data']);
@@ -64,6 +65,23 @@ class PokemonSource extends CatalogSource {
       page++;
     }
     return parseCards(rows, set);
+  }
+
+  /// Abilities, attacks and rules of a card as plain text.
+  static String? pokemonText(Map<String, Object?> c) {
+    final lines = <String>[];
+    for (final a in asMapList(c['abilities'])) {
+      lines.add('Ability – ${a.str('name')}: ${a.str('text')}');
+    }
+    for (final a in asMapList(c['attacks'])) {
+      final damage = a.str('damage');
+      final head = damage.isEmpty ? a.str('name') : '${a.str('name')} $damage';
+      final text = a.str('text');
+      lines.add(text.isEmpty ? head : '$head: $text');
+    }
+    final rules = c['rules'];
+    if (rules is List) lines.addAll(rules.map((r) => r.toString()));
+    return lines.isEmpty ? null : lines.join('\n');
   }
 
   static List<CatalogCard> parseCards(
@@ -93,6 +111,9 @@ class PokemonSource extends CatalogSource {
         cardmarketQuery: hasCode ? '$name ${set.code} $number' : name,
         cardmarketUrl: c.obj('cardmarket').strOrNull('url'),
         tcgplayerUrl: c.obj('tcgplayer').strOrNull('url'),
+        imageUrl: c.obj('images').strOrNull('large') ??
+            c.obj('images').strOrNull('small'),
+        text: pokemonText(c),
       ));
     }
     cards.sort(compareBinderOrder);

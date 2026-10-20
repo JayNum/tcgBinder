@@ -9,13 +9,19 @@ import '../catalog/games.dart';
 import '../data/collection_store.dart';
 import '../data/settings_store.dart';
 import '../models/catalog.dart';
+import '../models/collection.dart';
+import '../scanner/art_hash.dart';
+import '../scanner/art_index.dart';
 import '../scanner/card_matcher.dart';
 import '../scanner/code_reader.dart';
 import '../services/add_card.dart';
+import '../services/card_text.dart';
 import '../services/photos.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ios.dart';
 import '../widgets/pocket.dart';
 import 'game_screen.dart';
+import 'pro_screen.dart';
 
 /// Point the camera at a card, tap the shutter: the app reads the card
 /// number, finds the card and files the photo into the right binder.
@@ -31,6 +37,10 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
   String? _cameraError;
   bool _busy = false;
   String _gameId = games.first.id;
+
+  /// Recognise the card by its picture instead of by its number (Pro).
+  bool _byArt = false;
+  ArtIndex? _artIndex;
   final _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
   /// The card frame, as fractions of the preview (also used for cropping).
@@ -144,9 +154,12 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       final shot = await camera.takePicture();
 
       // Read the text on the card.
-      final recognized =
-          await _recognizer.processImage(InputImage.fromFilePath(shot.path));
-      final hints = readCardHints(gameId, recognized.text);
+      final byArt = _byArt;
+      final recognizedText = byArt
+          ? ''
+          : (await _recognizer.processImage(InputImage.fromFilePath(shot.path)))
+              .text;
+      final hints = byArt ? <CardHint>[] : readCardHints(gameId, recognizedText);
 
       // Crop the photo to the frame (a little extra so no edge is lost).
       // The upright preview is 1 wide and aspectRatio tall.
@@ -168,10 +181,12 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       List<CatalogCard> matches;
       String? lookupError;
       try {
-        matches = await CardMatcher(
-          catalog,
-          startedSets: store.startedSets(gameId: gameId),
-        ).find(gameId, hints, recognized.text);
+        matches = byArt
+            ? await _matchByArt(catalog, gameId, photoPath)
+            : await CardMatcher(
+                catalog,
+                startedSets: store.startedSets(gameId: gameId),
+              ).find(gameId, hints, recognizedText);
       } on Object catch (e) {
         matches = const [];
         lookupError = '$e';
@@ -187,6 +202,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
           matches: matches,
           readCodes: hints.map(_hintLabel).toList(),
           lookupError: lookupError,
+          byArtwork: byArt,
         ),
       );
       if (!mounted) return;
@@ -200,7 +216,18 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
         return;
       }
       final chosen = result;
-      addCardToCollection(context, chosen, photoPath: photoPath);
+      // The text of the card is shown in the language of the copy, so ask
+      // which language this one is (only where a game has several).
+      String? language;
+      if (byArt && CardTextService.languagesFor(chosen).length > 1) {
+        language = await showActionSheet<String>(
+          context,
+          title: 'Which language is this card?',
+          actions: [for (final l in cardLanguages) SheetAction(l, l)],
+        );
+        if (!mounted) return;
+      }
+      addCardToCollection(context, chosen, photoPath: photoPath, language: language);
       final set = catalog.setById(chosen.setId);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
@@ -216,6 +243,103 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Finds the cards whose artwork looks like the photo. Builds the artwork
+  /// index of every downloaded set of the game that has none yet.
+  Future<List<CatalogCard>> _matchByArt(
+    CatalogRepository catalog,
+    String gameId,
+    String photoPath,
+  ) async {
+    final pool = <String, List<CatalogCard>>{
+      for (final e in catalog.allCachedCards.entries)
+        if (catalog.setById(e.key)?.gameId == gameId) e.key: e.value,
+    };
+    if (pool.isEmpty) {
+      throw 'No card lists of this game are on your phone yet. Open a binder '
+          'of this game once, then try again.';
+    }
+    final dir = catalog.cacheDir;
+    final index = _artIndex ??= ArtIndex(
+      dir: dir == null ? null : Directory('${dir.path}${Platform.pathSeparator}art'),
+    );
+
+    final missing = {
+      for (final e in pool.entries)
+        if (!index.hasSet(e.key)) e.key: e.value,
+    };
+    if (missing.isNotEmpty) {
+      final count = missing.values.fold<int>(0, (n, l) => n + l.length);
+      final ok = await confirmDialog(
+        context,
+        title: 'Prepare artwork search',
+        message: 'The app downloads the pictures of $count cards once '
+            '(${missing.length} ${missing.length == 1 ? 'set' : 'sets'}) and '
+            'remembers what their artwork looks like. This can take a few '
+            'minutes on Wi-Fi.',
+        confirmLabel: 'Prepare',
+      );
+      if (!ok || !mounted) throw 'Artwork search was not prepared.';
+      await _prepare(index, missing);
+    }
+
+    final photo = await fingerprintPhoto(
+      await File(photoPath).readAsBytes(),
+      gameId,
+    );
+    if (photo == null) throw 'The photo could not be read.';
+
+    final all = <String, ArtPrint>{};
+    final byId = <String, CatalogCard>{};
+    for (final e in pool.entries) {
+      all.addAll(index.forSet(e.key));
+      for (final c in e.value) {
+        byId[c.id] = c;
+      }
+    }
+    return [
+      for (final m in rankArt(photo, all))
+        if (byId[m.cardId] != null) byId[m.cardId]!,
+    ];
+  }
+
+  Future<void> _prepare(ArtIndex index, Map<String, List<CatalogCard>> sets) async {
+    final progress = ValueNotifier<String>('Starting…');
+    var cancelled = false;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Preparing artwork search'),
+        content: ValueListenableBuilder<String>(
+          valueListenable: progress,
+          builder: (context, text, _) => Text(text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              cancelled = true;
+              Navigator.pop(context);
+            },
+            child: const Text('Stop'),
+          ),
+        ],
+      ),
+    );
+    var n = 0;
+    for (final e in sets.entries) {
+      n++;
+      await index.build(
+        e.key,
+        e.value,
+        isCancelled: () => cancelled,
+        onProgress: (done, total) =>
+            progress.value = 'Set $n of ${sets.length}: $done / $total cards',
+      );
+      if (cancelled) break;
+    }
+    if (!cancelled && mounted) Navigator.of(context, rootNavigator: true).pop();
   }
 
   static String _hintLabel(CardHint hint) => switch (hint) {
@@ -269,6 +393,35 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('Card number'),
+                    selected: !_byArt,
+                    onSelected: (_) => setState(() => _byArt = false),
+                  ),
+                  const SizedBox(width: 6),
+                  ChoiceChip(
+                    avatar: SettingsScope.of(context).isPro
+                        ? null
+                        : const Icon(Icons.lock_outline_rounded, size: 16),
+                    label: const Text('Artwork · Pro'),
+                    selected: _byArt,
+                    onSelected: (_) {
+                      if (!SettingsScope.of(context).isPro) {
+                        Navigator.of(context).push(MaterialPageRoute<void>(
+                          builder: (_) => const ProScreen(),
+                        ));
+                        return;
+                      }
+                      setState(() => _byArt = true);
+                    },
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: Center(
                 child: _cameraError != null
@@ -302,8 +455,11 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
               child: Text(
-                'Fit the card in the frame. Keep the number at the bottom '
-                'sharp and avoid glare.',
+                _byArt
+                    ? 'Fit the whole card in the frame, picture sharp and '
+                        'without glare. You confirm the match.'
+                    : 'Fit the card in the frame. Keep the number at the bottom '
+                        'sharp and avoid glare.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
               ),
@@ -375,12 +531,14 @@ class _ResultSheet extends StatefulWidget {
     required this.matches,
     required this.readCodes,
     this.lookupError,
+    this.byArtwork = false,
   });
 
   final String photoPath;
   final List<CatalogCard> matches;
   final List<String> readCodes;
   final String? lookupError;
+  final bool byArtwork;
 
   /// Returned when the user wants to look the card up in the binders.
   static const findManually = 'find-manually';
@@ -439,7 +597,9 @@ class _ResultSheetState extends State<_ResultSheet> {
                         Text(
                           matches.isEmpty
                               ? 'Card not found'
-                              : matches.length == 1
+                              : widget.byArtwork
+                                  ? 'Is this your card?'
+                                  : matches.length == 1
                                   ? 'Found it'
                                   : 'Which version is it?',
                           style: const TextStyle(
@@ -449,7 +609,15 @@ class _ResultSheetState extends State<_ResultSheet> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          matches.isEmpty
+                          widget.byArtwork
+                              ? (matches.isEmpty
+                                  ? (widget.lookupError ??
+                                      'No artwork looked close enough. Try '
+                                          'again with less glare, or find it '
+                                          'yourself.')
+                                  : 'Matched by artwork. Compare the pictures '
+                                      'and pick the right one.')
+                              : matches.isEmpty
                               ? (widget.readCodes.isEmpty
                                   ? 'No card number could be read. Try again '
                                       'closer, with less glare.'
@@ -476,6 +644,7 @@ class _ResultSheetState extends State<_ResultSheet> {
                           set: catalog.setById(card.setId),
                           owned: store.entryFor(card.id)?.quantity ?? 0,
                           selected: _selected?.id == card.id,
+                          showPicture: widget.byArtwork,
                           onTap: () => setState(() => _selected = card),
                         ),
                     ],
@@ -524,8 +693,10 @@ class _MatchTile extends StatelessWidget {
     required this.owned,
     required this.selected,
     required this.onTap,
+    this.showPicture = false,
   });
 
+  final bool showPicture;
   final CatalogCard card;
   final CardSet? set;
   final int owned;
@@ -558,6 +729,20 @@ class _MatchTile extends StatelessWidget {
                   color: selected ? context.accent : tokens.muted,
                 ),
                 const SizedBox(width: 12),
+                if (showPicture && card.imageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.network(
+                      card.imageUrl!,
+                      width: 46,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const SizedBox(width: 46, height: 64),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

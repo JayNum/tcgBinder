@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ios.dart';
 
@@ -16,6 +18,26 @@ class _ProScreenState extends State<ProScreen> {
   bool _yearly = true;
 
   static const _features = <(IconData, Color, String, String)>[
+    (
+      Icons.block_rounded,
+      Color(0xFF34C759),
+      'No ads',
+      'No banners and no daily video. Just your cards.',
+    ),
+    (
+      Icons.translate_rounded,
+      Color(0xFF5AC8FA),
+      'Card text in every language',
+      'Read the printed card text in German, French, Japanese and more '
+          '(Magic and Pokémon).',
+    ),
+    (
+      Icons.image_search_rounded,
+      Color(0xFFFF2D55),
+      'Recognise by artwork',
+      'Scan a card and the app finds it by its picture, then you confirm. '
+          'Works when the code is hard to read.',
+    ),
     (
       Icons.cloud_download_rounded,
       Color(0xFF007AFF),
@@ -163,14 +185,28 @@ class _ProScreenState extends State<ProScreen> {
           ),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: () => confirmDialog(
-              context,
-              title: 'Not switched on yet',
-              message: 'Subscriptions are not connected in this test version, '
-                  'so nothing was charged.',
-              confirmLabel: 'OK',
+            onPressed: () {
+              final settings = SettingsScope.of(context);
+              if (kDebugMode) {
+                // Debug builds only: flip Pro on and off to try the features.
+                settings.setPro(!settings.isPro);
+                return;
+              }
+              confirmDialog(
+                context,
+                title: 'Not switched on yet',
+                message: 'Subscriptions are not connected in this test '
+                    'version, so nothing was charged.',
+                confirmLabel: 'OK',
+              );
+            },
+            child: Text(
+              kDebugMode
+                  ? (SettingsScope.of(context).isPro
+                      ? 'Switch Pro off (test build)'
+                      : 'Switch Pro on (test build)')
+                  : 'Continue',
             ),
-            child: const Text('Continue'),
           ),
           const SizedBox(height: 8),
           Center(

@@ -85,6 +85,24 @@ class MagicSource extends CatalogSource {
     return parseCards(rows, set);
   }
 
+  static String? _image(Map<String, Object?> c) {
+    final own = c.obj('image_uris').strOrNull('normal');
+    if (own != null) return own;
+    final faces = asMapList(c['card_faces']);
+    return faces.isEmpty ? null : faces.first.obj('image_uris').strOrNull('normal');
+  }
+
+  static String? _oracle(Map<String, Object?> c) {
+    final own = c.strOrNull('oracle_text');
+    if (own != null) return own;
+    final faces = [
+      for (final f in asMapList(c['card_faces']))
+        if (f.strOrNull('oracle_text') != null)
+          '${f.str('name')}\n${f.str('oracle_text')}',
+    ];
+    return faces.isEmpty ? null : faces.join('\n\n');
+  }
+
   static List<CatalogCard> parseCards(
     List<Map<String, Object?>> rows,
     CardSet set,
@@ -114,6 +132,8 @@ class MagicSource extends CatalogSource {
         cardmarketQuery: name,
         cardmarketUrl: purchase.strOrNull('cardmarket'),
         tcgplayerUrl: purchase.strOrNull('tcgplayer'),
+        imageUrl: _image(c),
+        text: _oracle(c),
       ));
     }
     cards.sort(compareBinderOrder);

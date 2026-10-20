@@ -21,6 +21,8 @@ class SettingsStore extends ChangeNotifier {
   List<String> _gameOrder = [];
   final Set<String> _hiddenGames = {};
   final Map<String, int> _labelColors = {};
+  bool _isPro = false;
+  String? _lastFullScreenAd; // yyyy-mm-dd
 
   Future<void> load() async {
     final f = file;
@@ -39,6 +41,8 @@ class SettingsStore extends ChangeNotifier {
       _lastScanGame = json['lastScanGame'] as String?;
       final order = json['gameOrder'];
       if (order is List) _gameOrder = order.whereType<String>().toList();
+      _isPro = json['isPro'] == true;
+      _lastFullScreenAd = json['lastFullScreenAd'] as String?;
       final colors = json['labelColors'];
       if (colors is Map) {
         colors.forEach((k, v) {
@@ -51,6 +55,31 @@ class SettingsStore extends ChangeNotifier {
       debugPrint('Could not read settings: $e');
     }
     notifyListeners();
+  }
+
+  /// Pro removes ads and unlocks card text in every language and scanning
+  /// by artwork. (Purchases are not connected yet; the Pro screen has a test
+  /// switch in debug builds.)
+  bool get isPro => _isPro;
+
+  void setPro(bool value) {
+    if (_isPro == value) return;
+    _isPro = value;
+    _save();
+  }
+
+  static String _today() {
+    final n = DateTime.now();
+    return '${n.year}-${n.month.toString().padLeft(2, '0')}-'
+        '${n.day.toString().padLeft(2, '0')}';
+  }
+
+  /// True when today's full-screen video ad has not been shown yet.
+  bool get fullScreenAdDue => !_isPro && _lastFullScreenAd != _today();
+
+  void markFullScreenAdShown() {
+    _lastFullScreenAd = _today();
+    _save();
   }
 
   /// The colour of a label: the one the user picked, or a steady default.
@@ -130,6 +159,8 @@ class SettingsStore extends ChangeNotifier {
       'gameOrder': _gameOrder,
       'hiddenGames': _hiddenGames.toList(),
       'labelColors': _labelColors,
+      'isPro': _isPro,
+      'lastFullScreenAd': _lastFullScreenAd,
     });
     f.parent
         .create(recursive: true)

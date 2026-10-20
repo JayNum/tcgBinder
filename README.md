@@ -23,7 +23,16 @@ Everything stays on the phone.
   labels on as filters.
 - **Settings:** Pro upgrade screen (backup & restore, binder looks, batch
   scanning; purchases are not connected yet).
-- **No ads.**
+- **Ads, kept low:** one small banner above the tab bar on every screen and
+  one full-screen video at most once a day (when you add a card). Pro removes
+  both. Uses Google's test ad IDs until you put in your own (see `lib/services/ads.dart`).
+- **Card text (Pro for other languages):** an expandable "Card text" block on
+  every card. English is free; German, French, Japanese and more come from
+  Scryfall (Magic) and TCGdex (Pokémon). Other games only publish English.
+- **Scan by artwork (Pro, experimental):** switch the scanner to "Artwork",
+  the app compares your photo with the card pictures of the downloaded sets
+  (a perceptual hash, all on the phone) and shows the closest cards with their
+  pictures for you to confirm. Lorcana pictures are AVIF and may be skipped.
 - **Game → sets:** every set of the game as a binder, empty by default.
   Filter by boosters / extra boosters / starter decks / promos; sort by
   newest, oldest or name.

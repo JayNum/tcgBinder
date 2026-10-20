@@ -122,6 +122,8 @@ class RiftboundSource extends CatalogSource {
         tcgplayerUrl: tcgplayerId == null
             ? null
             : 'https://www.tcgplayer.com/product/$tcgplayerId',
+        imageUrl: c.obj('media').strOrNull('image_url'),
+        text: c.obj('text').strOrNull('plain'),
       ));
     }
     cards.sort(compareBinderOrder);

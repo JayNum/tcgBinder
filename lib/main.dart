@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'app.dart';
 import 'catalog/catalog_repository.dart';
 import 'data/collection_store.dart';
 import 'data/settings_store.dart';
+import 'services/ads.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,9 +40,15 @@ Future<void> main() async {
   );
   await Future.wait([collection.load(), settings.load(), catalog.loadCache()]);
 
+  final ads = AdsService(enabled: Platform.isAndroid || Platform.isIOS);
+
   runApp(TcgBinderApp(
     collection: collection,
     settings: settings,
     catalog: catalog,
+    ads: ads,
   ));
+
+  // Consent prompt and AdMob start after the first frame.
+  unawaited(ads.init());
 }

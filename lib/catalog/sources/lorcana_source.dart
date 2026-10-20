@@ -103,6 +103,9 @@ class LorcanaSource extends CatalogSource {
         versionKey: 'lorcana|${fullName.toLowerCase()}',
         cardmarketQuery: version == null ? name : '$name $version',
         tcgplayerUrl: tcgplayerUrl,
+        imageUrl: c.obj('image_uris').obj('digital').strOrNull('normal') ??
+            c.obj('image_uris').obj('digital').strOrNull('large'),
+        text: c.strOrNull('text'),
       ));
     }
     cards.sort(compareBinderOrder);

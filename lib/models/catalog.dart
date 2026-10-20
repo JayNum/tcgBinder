@@ -133,6 +133,8 @@ class CatalogCard {
     this.reprint = false,
     this.cardmarketUrl,
     this.tcgplayerUrl,
+    this.imageUrl,
+    this.text,
   });
 
   final String id;
@@ -168,6 +170,12 @@ class CatalogCard {
   final String? cardmarketUrl;
   final String? tcgplayerUrl;
 
+  /// A picture of the card from the database (used to recognise artwork).
+  final String? imageUrl;
+
+  /// The English card text as published by the database.
+  final String? text;
+
   String get fullName => subtitle == null ? name : '$name - $subtitle';
 
   bool get isVariant => variant != null;
@@ -190,6 +198,8 @@ class CatalogCard {
         'cardmarketQuery': cardmarketQuery,
         'cardmarketUrl': cardmarketUrl,
         'tcgplayerUrl': tcgplayerUrl,
+        'imageUrl': imageUrl,
+        'text': text,
       };
 
   factory CatalogCard.fromJson(Map<String, Object?> json) => CatalogCard(
@@ -207,6 +217,8 @@ class CatalogCard {
         cardmarketQuery: json['cardmarketQuery']! as String,
         cardmarketUrl: json['cardmarketUrl'] as String?,
         tcgplayerUrl: json['tcgplayerUrl'] as String?,
+        imageUrl: json['imageUrl'] as String?,
+        text: json['text'] as String?,
       );
 }
 

@@ -45,7 +45,7 @@ class CatalogRepository extends ChangeNotifier {
   static const setListMaxAge = Duration(days: 3);
 
   /// Bump when the way lists are read changes, so old copies are replaced.
-  static const cacheVersion = 2;
+  static const cacheVersion = 3;
 
   final _sets = <String, List<CardSet>>{};
   final _cards = <String, List<CatalogCard>>{};

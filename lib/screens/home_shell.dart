@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import 'binders_screen.dart';
 import 'favorites_screen.dart';
@@ -69,46 +70,40 @@ class _HomeShellState extends State<HomeShell> {
         if (!didPop) _back();
       },
       child: Scaffold(
-        body: Stack(
+        body: Column(
           children: [
-            Column(
-              children: [
-                Expanded(
-                  // The bar below already covers the bottom safe area.
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeBottom: true,
-                    child: IndexedStack(
-                      index: _tab,
-                      children: [
-                        for (var i = 0; i < _roots.length; i++)
-                          // Only the visible tab runs animations.
-                          TickerMode(
-                            enabled: i == _tab,
-                            child: Navigator(
-                              key: _navigators[i],
-                              onGenerateRoute: (settings) =>
-                                  MaterialPageRoute<void>(
-                                settings: settings,
-                                builder: (_) => _roots[i],
-                              ),
-                            ),
+            Expanded(
+              // The bar below already covers the bottom safe area.
+              child: MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                child: IndexedStack(
+                  index: _tab,
+                  children: [
+                    for (var i = 0; i < _roots.length; i++)
+                      // Only the visible tab runs animations.
+                      TickerMode(
+                        enabled: i == _tab,
+                        child: Navigator(
+                          key: _navigators[i],
+                          onGenerateRoute: (settings) =>
+                              MaterialPageRoute<void>(
+                            settings: settings,
+                            builder: (_) => _roots[i],
                           ),
-                      ],
-                    ),
-                  ),
+                        ),
+                      ),
+                  ],
                 ),
-                _TabBar(selected: _tab, onSelect: _select),
-              ],
+              ),
             ),
-            // The big Scan button sits in the middle of the bar, rising out
-            // of it.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + _TabBar.height - 46,
-              child: Center(child: _ScanButton(onTap: _scan)),
+            // One banner for every screen, always above the tab bar, so it
+            // never covers (or is covered by) anything.
+            const ColoredBox(
+              color: Colors.transparent,
+              child: Center(child: BannerAdView()),
             ),
+            _TabBar(selected: _tab, onSelect: _select, onScan: _scan),
           ],
         ),
       ),
@@ -117,12 +112,17 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.selected, required this.onSelect});
+  const _TabBar({
+    required this.selected,
+    required this.onSelect,
+    required this.onScan,
+  });
 
-  static const height = 56.0;
+  static const height = 66.0;
 
   final int selected;
   final ValueChanged<int> onSelect;
+  final VoidCallback onScan;
 
   @override
   Widget build(BuildContext context) {
@@ -162,8 +162,8 @@ class _TabBar extends StatelessWidget {
                     selected: selected == 1,
                     onTap: () => onSelect(1),
                   ),
-                  // Room for the Scan button in the middle.
-                  const Expanded(child: SizedBox.shrink()),
+                  // The big Scan button, right in the middle of the bar.
+                  Expanded(child: Center(child: _ScanButton(onTap: onScan))),
                   _TabItem(
                     icon: Icons.search_rounded,
                     activeIcon: Icons.search_rounded,
@@ -198,45 +198,36 @@ class _ScanButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.binder;
     return Semantics(
       button: true,
       label: 'Scan cards',
       child: GestureDetector(
         onTap: onTap,
-        // A ring in the page colour makes the button look cut into the bar.
         child: Container(
-          width: 76,
-          height: 76,
-          padding: const EdgeInsets.all(5),
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
-            color: tokens.background,
             shape: BoxShape.circle,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.lerp(context.accent, Colors.white, 0.25)!,
-                  context.accent,
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: context.accent.withValues(alpha: 0.45),
-                  blurRadius: 14,
-                  offset: const Offset(0, 5),
-                ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.lerp(context.accent, Colors.white, 0.25)!,
+                context.accent,
               ],
             ),
-            child: const Icon(
-              Icons.document_scanner_rounded,
-              color: Colors.white,
-              size: 34,
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: context.accent.withValues(alpha: 0.45),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.document_scanner_rounded,
+            color: Colors.white,
+            size: 32,
           ),
         ),
       ),
