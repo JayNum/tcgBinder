@@ -324,8 +324,8 @@ const Map<String, String> _de = {
   'Read the printed card text in German, French, Japanese and more (Pokémon; Magic is free).':
       'Lies den gedruckten Kartentext auf Deutsch, Französisch, Japanisch und mehr (Pokémon; bei Magic kostenlos).',
   'Recognise by artwork': 'Per Motiv erkennen',
-  'Scan a card and the app finds it by its picture, then you confirm. Free for Magic (10 a day). Pro: every game, no limit.':
-      'Scanne eine Karte, die App findet sie über ihr Bild, du bestätigst. Kostenlos für Magic (10 am Tag). Pro: jedes Spiel, ohne Limit.',
+  'Scan a card and the app finds it by its picture, then you confirm. Free for Magic and Lorcana (10 a day). Pro: every game, no limit.':
+      'Scanne eine Karte, die App findet sie über ihr Bild, du bestätigst. Kostenlos für Magic und Lorcana (10 am Tag). Pro: jedes Spiel, ohne Limit.',
   'Backup & restore': 'Sichern & Wiederherstellen',
   'Save your whole collection, photos included, as one file. Keep it anywhere and restore it on any phone.':
       'Sichere deine ganze Sammlung samt Fotos als eine Datei. Bewahre sie überall auf und stelle sie auf jedem Handy wieder her.',

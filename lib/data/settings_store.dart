@@ -80,8 +80,9 @@ class SettingsStore extends ChangeNotifier {
 
   AppSkin get activeSkin => _isPro ? _skin : AppSkin.classic;
 
-  /// Free artwork scans a day for Magic (Scryfall does not allow its data
-  /// to be put behind a paywall, so Magic gets a free daily allowance).
+  /// Games whose card data may not be put behind a paywall (Scryfall and
+  /// Lorcast forbid it). Artwork scan is free for them, a few times a day.
+  static const freeArtGames = {'magic', 'lorcana'};
   static const freeMagicArtScansPerDay = 10;
 
   /// Today's date, but never earlier than the latest time we have seen, so

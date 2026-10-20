@@ -156,7 +156,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     try {
       // Artwork scan: free for Magic (10 a day), Pro for the other games.
       if (_byArt && !settings.isPro) {
-        if (gameId != 'magic') {
+        if (!SettingsStore.freeArtGames.contains(gameId)) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => const ProScreen(),
           ));
@@ -427,14 +427,15 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(width: 6),
                   ChoiceChip(
-                    avatar: SettingsScope.of(context).isPro || _gameId == 'magic'
+                    avatar: SettingsScope.of(context).isPro ||
+                        SettingsStore.freeArtGames.contains(_gameId)
                         ? null
                         : const Icon(Icons.lock_outline_rounded, size: 16),
                     label: const Text('Artwork'),
                     selected: _byArt,
                     onSelected: (_) {
                       if (!SettingsScope.of(context).isPro &&
-                          _gameId != 'magic') {
+                          !SettingsStore.freeArtGames.contains(_gameId)) {
                         Navigator.of(context).push(MaterialPageRoute<void>(
                           builder: (_) => const ProScreen(),
                         ));
