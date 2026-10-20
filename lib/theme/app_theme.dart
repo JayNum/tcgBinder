@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-const _accentLight = Color(0xFF2B50D6);
-const _accentDark = Color(0xFF8FA3FF);
+// iOS system colours (systemBlue), so the app feels at home on an iPhone.
+const _accentLight = Color(0xFF007AFF);
+const _accentDark = Color(0xFF0A84FF);
 
 /// Design tokens from the mockups, available via `context.binder`.
 @immutable
@@ -42,42 +43,43 @@ class BinderColors extends ThemeExtension<BinderColors> {
   final Color danger;
   final Color adBackground;
 
+  // Grouped-list look: grey page, white rows, hairline separators.
   static const light = BinderColors(
-    background: Color(0xFFF4F2EE),
+    background: Color(0xFFF2F2F7), // systemGroupedBackground
     surface: Color(0xFFFFFFFF),
-    border: Color(0xFFE3E0D8),
-    divider: Color(0xFFEEEBE4),
-    text: Color(0xFF18181B),
-    muted: Color(0xFF5E5D58),
-    pocket: Color(0xFFF6F5F1),
-    pocketBorder: Color(0xFFDCD8CE),
-    labelMissing: Color(0xFF6E6C66),
-    cardEdge: Color(0xFFEEEAE0),
-    accentSoft: Color(0xFFECEFFB),
-    accentSoftText: Color(0xFF2B3E8F),
-    success: Color(0xFF1F6B45),
-    successSoft: Color(0xFFE7F3EC),
-    danger: Color(0xFFB42318),
-    adBackground: Color(0xFFECE9E2),
+    border: Color(0xFFE5E5EA),
+    divider: Color(0xFFD1D1D6),
+    text: Color(0xFF000000),
+    muted: Color(0xFF6C6C70),
+    pocket: Color(0xFFF2F2F7),
+    pocketBorder: Color(0xFFD1D1D6),
+    labelMissing: Color(0xFF6C6C70),
+    cardEdge: Color(0xFFE5E5EA),
+    accentSoft: Color(0xFFE5F0FF),
+    accentSoftText: Color(0xFF0058B8),
+    success: Color(0xFF1E7B34),
+    successSoft: Color(0xFFE3F5E8),
+    danger: Color(0xFFD70015),
+    adBackground: Color(0xFFE5E5EA),
   );
 
   static const dark = BinderColors(
-    background: Color(0xFF111214),
-    surface: Color(0xFF1B1D21),
-    border: Color(0xFF2A2D33),
-    divider: Color(0xFF26292E),
-    text: Color(0xFFEDEDEF),
-    muted: Color(0xFFA1A3A9),
-    pocket: Color(0xFF15171A),
-    pocketBorder: Color(0xFF33363D),
-    labelMissing: Color(0xFF8E9198),
+    background: Color(0xFF000000),
+    surface: Color(0xFF1C1C1E), // secondarySystemGroupedBackground
+    border: Color(0xFF2C2C2E),
+    divider: Color(0xFF38383A),
+    text: Color(0xFFFFFFFF),
+    muted: Color(0xFF98989F),
+    pocket: Color(0xFF2C2C2E),
+    pocketBorder: Color(0xFF48484A),
+    labelMissing: Color(0xFF98989F),
     cardEdge: Color(0xFFD9D4C6),
-    accentSoft: Color(0xFF1E2335),
-    accentSoftText: Color(0xFFB4C2FF),
-    success: Color(0xFF7FD3A1),
-    successSoft: Color(0xFF16301F),
-    danger: Color(0xFFFF8A7A),
-    adBackground: Color(0xFF1A1C20),
+    accentSoft: Color(0xFF0A2A52),
+    accentSoftText: Color(0xFF7DB8FF),
+    success: Color(0xFF30D158),
+    successSoft: Color(0xFF12301B),
+    danger: Color(0xFFFF453A),
+    adBackground: Color(0xFF1C1C1E),
   );
 
   @override
@@ -100,9 +102,7 @@ ThemeData buildTheme(Brightness brightness) {
     brightness: brightness,
   ).copyWith(
     primary: accent,
-    onPrimary: isDark ? const Color(0xFF0E1430) : Colors.white,
-    // App bars and the scaffold sit on the page background; cards and lists
-    // use `context.binder.surface` explicitly.
+    onPrimary: Colors.white,
     surface: tokens.background,
     onSurface: tokens.text,
     error: tokens.danger,
@@ -112,15 +112,108 @@ ThemeData buildTheme(Brightness brightness) {
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
+    // iOS behaviour everywhere: swipe-back, bouncy scrolling, no ripples.
+    platform: TargetPlatform.iOS,
+    splashFactory: NoSplash.splashFactory,
     scaffoldBackgroundColor: tokens.background,
     dividerColor: tokens.divider,
     extensions: [tokens],
+    cupertinoOverrideTheme: NoDefaultCupertinoThemeData(
+      brightness: brightness,
+      primaryColor: accent,
+      scaffoldBackgroundColor: tokens.background,
+    ),
   );
 
   return base.copyWith(
     textTheme: base.textTheme.apply(
       bodyColor: tokens.text,
       displayColor: tokens.text,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: tokens.background,
+      foregroundColor: tokens.text,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      centerTitle: true,
+      titleTextStyle: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: tokens.text,
+      ),
+    ),
+    dividerTheme: DividerThemeData(
+      color: tokens.divider,
+      thickness: 0.5,
+      space: 0.5,
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: accent,
+      titleTextStyle: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        color: tokens.text,
+      ),
+      subtitleTextStyle: TextStyle(fontSize: 13, color: tokens.muted),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        side: BorderSide.none,
+        backgroundColor: tokens.accentSoft,
+        foregroundColor: accent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: tokens.surface,
+      selectedColor: accent,
+      secondarySelectedColor: accent,
+      side: BorderSide.none,
+      shape: const StadiumBorder(),
+      labelStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: tokens.text,
+      ),
+      secondaryLabelStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+      checkmarkColor: Colors.white,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: tokens.surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: tokens.surface,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+    switchTheme: SwitchThemeData(
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? const Color(0xFF34C759)
+            : null,
+      ),
     ),
   );
 }

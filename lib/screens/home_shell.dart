@@ -1,11 +1,18 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
-import 'home_screen.dart';
+import 'binders_screen.dart';
+import 'favorites_screen.dart';
 import 'scan_screen.dart';
 import 'settings_screen.dart';
 
-/// Bottom bar with Binders, a raised Scan button, and Settings.
+/// The app's frame: Favorites, Scan, Binders and Settings along the bottom.
+///
+/// Every tab keeps its own stack of screens, so the bar (and the Scan
+/// button) stays on screen when you open a game, a binder or a card.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -14,44 +21,80 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
+  static const _roots = <Widget>[
+    FavoritesScreen(),
+    BindersScreen(),
+    SettingsScreen(),
+  ];
+
+  final _navigators = List.generate(3, (_) => GlobalKey<NavigatorState>());
   int _tab = 0;
+
+  void _select(int tab) {
+    if (tab == _tab) {
+      // Tapping the tab you are on goes back to its first screen.
+      _navigators[tab].currentState?.popUntil((route) => route.isFirst);
+    } else {
+      setState(() => _tab = tab);
+    }
+  }
+
+  void _scan() {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => const ScanScreen(),
+      ),
+    );
+  }
+
+  void _back() {
+    final navigator = _navigators[_tab].currentState;
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop();
+    } else if (_tab != 0) {
+      setState(() => _tab = 0);
+    } else {
+      SystemNavigator.pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _tab,
-        children: const [HomeScreen(), SettingsScreen()],
-      ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Scan cards',
-        shape: const CircleBorder(),
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const ScanScreen()),
-        ),
-        child: const Icon(Icons.document_scanner_outlined),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        height: 64,
-        padding: EdgeInsets.zero,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 6,
-        child: Row(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _back();
+      },
+      child: Scaffold(
+        body: Column(
           children: [
-            _NavItem(
-              icon: Icons.collections_bookmark_outlined,
-              label: 'Binders',
-              selected: _tab == 0,
-              onTap: () => setState(() => _tab = 0),
+            Expanded(
+              // The bar below already covers the bottom safe area.
+              child: MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                child: IndexedStack(
+                  index: _tab,
+                  children: [
+                    for (var i = 0; i < _roots.length; i++)
+                      // Only the visible tab runs animations (the carousel).
+                      TickerMode(
+                        enabled: i == _tab,
+                        child: Navigator(
+                          key: _navigators[i],
+                          onGenerateRoute: (settings) =>
+                              MaterialPageRoute<void>(
+                            settings: settings,
+                            builder: (_) => _roots[i],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(width: 72),
-            _NavItem(
-              icon: Icons.tune,
-              label: 'Settings',
-              selected: _tab == 1,
-              onTap: () => setState(() => _tab = 1),
-            ),
+            _TabBar(selected: _tab, onSelect: _select, onScan: _scan),
           ],
         ),
       ),
@@ -59,15 +102,120 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  const _NavItem({
+class _TabBar extends StatelessWidget {
+  const _TabBar({
+    required this.selected,
+    required this.onSelect,
+    required this.onScan,
+  });
+
+  final int selected;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onScan;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.binder;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: (dark ? const Color(0xFF1C1C1E) : const Color(0xFFF9F9F9))
+                .withValues(alpha: 0.92),
+            border: Border(
+              top: BorderSide(color: tokens.divider, width: 0.5),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 58,
+              child: Row(
+                children: [
+                  _TabItem(
+                    icon: Icons.favorite_border_rounded,
+                    activeIcon: Icons.favorite_rounded,
+                    label: 'Favorites',
+                    selected: selected == 0,
+                    onTap: () => onSelect(0),
+                  ),
+                  Expanded(child: Center(child: _ScanButton(onTap: onScan))),
+                  _TabItem(
+                    icon: Icons.collections_bookmark_outlined,
+                    activeIcon: Icons.collections_bookmark_rounded,
+                    label: 'Binders',
+                    selected: selected == 1,
+                    onTap: () => onSelect(1),
+                  ),
+                  _TabItem(
+                    icon: Icons.settings_outlined,
+                    activeIcon: Icons.settings_rounded,
+                    label: 'Settings',
+                    selected: selected == 2,
+                    onTap: () => onSelect(2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The main action of the app: a big filled button that is always there.
+class _ScanButton extends StatelessWidget {
+  const _ScanButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Scan cards',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: context.accent,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: context.accent.withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.document_scanner_rounded,
+            color: Colors.white,
+            size: 26,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabItem extends StatelessWidget {
+  const _TabItem({
     required this.icon,
+    required this.activeIcon,
     required this.label,
     required this.selected,
     required this.onTap,
   });
 
   final IconData icon;
+  final IconData activeIcon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -79,20 +227,21 @@ class _NavItem extends StatelessWidget {
       child: Semantics(
         selected: selected,
         button: true,
-        child: InkResponse(
-          onTap: onTap,
-          child: SizedBox(
-            height: 64,
+        label: label,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: color),
+                Icon(selected ? activeIcon : icon, color: color, size: 26),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
                     color: color,
                   ),
                 ),

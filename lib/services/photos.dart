@@ -6,28 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
+import '../widgets/ios.dart';
+
 /// Asks where the photo should come from: camera or gallery.
 Future<ImageSource?> askPhotoSource(BuildContext context) {
-  return showModalBottomSheet<ImageSource>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('Take a photo'),
-            onTap: () => Navigator.pop(context, ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Choose from gallery'),
-            onTap: () => Navigator.pop(context, ImageSource.gallery),
-          ),
-        ],
-      ),
-    ),
+  return showActionSheet<ImageSource>(
+    context,
+    actions: const [
+      SheetAction('Take a photo', ImageSource.camera),
+      SheetAction('Choose from gallery', ImageSource.gallery),
+    ],
   );
 }
 

@@ -12,6 +12,7 @@ import '../services/photos.dart';
 import '../services/price_links.dart';
 import '../theme/app_theme.dart';
 import '../widgets/card_photo.dart';
+import '../widgets/ios.dart';
 import '../widgets/pocket.dart';
 
 class CardDetailScreen extends StatelessWidget {
@@ -33,13 +34,12 @@ class CardDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               card.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             Text(
               [
@@ -49,10 +49,32 @@ class CardDetailScreen extends StatelessWidget {
               ].join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: tokens.muted),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: tokens.muted,
+              ),
             ),
           ],
         ),
+        actions: [
+          // Only cards you own can be favorites.
+          if (entry != null)
+            IconButton(
+              tooltip: entry.favorite
+                  ? 'Remove from favorites'
+                  : 'Add to favorites',
+              onPressed: () => store.toggleFavorite(card.id),
+              icon: Icon(
+                entry.favorite
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: entry.favorite
+                    ? const Color(0xFFFF2D55)
+                    : context.accent,
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: const BannerAdView(),
       body: ListView(
@@ -105,6 +127,7 @@ class CardDetailScreen extends StatelessWidget {
             ),
           const SizedBox(height: 20),
           _VersionsSection(card: card),
+          if (entry != null) _LabelsSection(entry: entry),
           if (entry != null) _YourCopy(entry: entry, game: game),
           const SizedBox(height: 16),
           const _SectionTitle('Check prices'),
@@ -189,26 +212,14 @@ class CardDetailScreen extends StatelessWidget {
   Future<void> _confirmRemove(BuildContext context) async {
     final store = CollectionScope.of(context);
     final navigator = Navigator.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove this card?'),
-        content: Text(
-          '${card.name} and its photo will be removed from your binder.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      title: 'Remove this card?',
+      message: '${card.name} and its photo will be removed from your binder.',
+      confirmLabel: 'Remove',
+      destructive: true,
     );
-    if (ok == true) {
+    if (ok) {
       store.remove(card.id);
       navigator.pop();
     }
@@ -384,7 +395,7 @@ class _VersionsSectionState extends State<_VersionsSection> {
                   trailing: AnimatedRotation(
                     turns: _open ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: Icon(Icons.expand_more, color: tokens.muted),
+                    child: Icon(Icons.expand_more_rounded, color: tokens.muted),
                   ),
                 ),
                 if (_open) ...[
@@ -639,28 +650,17 @@ class _YourCopy extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(entry.language, style: TextStyle(color: tokens.muted)),
-                    Icon(Icons.chevron_right, color: tokens.muted),
+                    Icon(Icons.chevron_right_rounded, color: tokens.muted),
                   ],
                 ),
                 onTap: () async {
-                  final language = await showModalBottomSheet<String>(
-                    context: context,
-                    showDragHandle: true,
-                    builder: (context) => SafeArea(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final l in cardLanguages)
-                            ListTile(
-                              title: Text(l),
-                              trailing: l == entry.language
-                                  ? const Icon(Icons.check)
-                                  : null,
-                              onTap: () => Navigator.pop(context, l),
-                            ),
-                        ],
-                      ),
-                    ),
+                  final language = await showActionSheet<String>(
+                    context,
+                    title: 'Language',
+                    actions: [
+                      for (final l in cardLanguages)
+                        SheetAction(l, l, checked: l == entry.language),
+                    ],
                   );
                   if (language != null) save(entry.copyWith(language: language));
                 },
@@ -670,6 +670,82 @@ class _YourCopy extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// The user's own labels for a card ("Trade", "Deck", ...). Tap a label to
+/// put it on the card or take it off; "New label" makes another one.
+class _LabelsSection extends StatelessWidget {
+  const _LabelsSection({required this.entry});
+
+  final CollectionEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.binder;
+    final store = CollectionScope.of(context);
+    final labels = store.allLabels;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionTitle('Labels'),
+          _Surface(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  runSpacing: 8,
+                  children: [
+                    for (final label in labels)
+                      PillChip(
+                        label: label,
+                        icon: Icons.sell_outlined,
+                        background: tokens.pocket,
+                        selected: entry.labels.contains(label),
+                        onTap: () => entry.labels.contains(label)
+                            ? store.removeLabel(entry.cardId, label)
+                            : store.addLabel(entry.cardId, label),
+                      ),
+                    PillChip(
+                      label: 'New label',
+                      icon: Icons.add_rounded,
+                      background: tokens.pocket,
+                      selected: false,
+                      onTap: () => _add(context),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 6),
+                  child: Text(
+                    'Labels are only for you, like "Trade", "Deck" or '
+                    '"Graded". Use them in Binders to show only those cards.',
+                    style: TextStyle(fontSize: 13, height: 1.35, color: tokens.muted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _add(BuildContext context) async {
+    final store = CollectionScope.of(context);
+    final text = await promptDialog(
+      context,
+      title: 'New label',
+      placeholder: 'e.g. Trade',
+      confirmLabel: 'Add',
+    );
+    if (text != null && text.trim().isNotEmpty) {
+      store.addLabel(entry.cardId, text);
+    }
   }
 }
 
@@ -685,10 +761,9 @@ class _SectionTitle extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.8,
+          fontSize: 13,
           color: context.binder.muted,
+          letterSpacing: -0.1,
         ),
       ),
     );
@@ -709,8 +784,7 @@ class _Surface extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: tokens.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Material(type: MaterialType.transparency, child: child),
     );

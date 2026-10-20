@@ -5,10 +5,19 @@ Lorcana and Riftbound. Every set is its own binder with 9-pocket pages;
 cards you own show your own photo, missing cards show their number and name.
 Everything stays on the phone.
 
-## Features (v0.2)
+## Features (v0.3)
 
-- **Home:** your stats and one tile per game. Long-press a tile (or tap the
-  pencil) to use your own image for it.
+- **Look:** follows iOS conventions (large titles, grouped lists, action
+  sheets, swipe back, translucent tab bar), in light and dark.
+- **Tab bar:** Favorites, **Scan**, Binders, Settings. Each tab keeps its own
+  screens, so the bar and the Scan button stay visible everywhere.
+- **Favorites:** cards you gave a heart turn slowly on a carousel; drag it to
+  spin it yourself, tap the front card to open it.
+- **Binders tab:** one tile per game (long-press a tile to use your own image,
+  Arrange to reorder or hide games) and a search for single cards.
+- **Search and labels:** search cards by name, code, set or rarity (all
+  downloaded sets). Give cards your own labels ("Trade", "Deck"...) on the
+  card page and switch labels on as filters to see only those cards.
 - **Game → sets:** every set of the game as a binder, empty by default.
   Filter by boosters / extra boosters / starter decks / promos; sort by
   newest, oldest or name.

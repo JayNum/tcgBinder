@@ -75,6 +75,17 @@ class Pocket extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (entry?.favorite ?? false)
+                      const Positioned(
+                        left: 6,
+                        bottom: 6,
+                        child: Icon(
+                          Icons.favorite_rounded,
+                          size: 15,
+                          color: Color(0xFFFF2D55),
+                          shadows: [Shadow(blurRadius: 3, color: Colors.black54)],
+                        ),
+                      ),
                     if ((entry?.quantity ?? 0) > 1)
                       Positioned(
                         top: -6,

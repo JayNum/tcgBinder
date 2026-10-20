@@ -60,6 +60,45 @@ class CollectionStore extends ChangeNotifier {
   int ownedIn(Iterable<CatalogCard> cards) =>
       cards.where((c) => _entries.containsKey(c.id)).length;
 
+  /// Cards with a heart, newest first.
+  List<CollectionEntry> get favorites => [
+        for (final e in _entries.values)
+          if (e.favorite) e,
+      ]..sort((a, b) => b.addedAt.compareTo(a.addedAt));
+
+  /// Every label the user has used, A–Z.
+  List<String> get allLabels {
+    final labels = <String>{for (final e in _entries.values) ...e.labels};
+    return labels.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
+  void toggleFavorite(String cardId) {
+    final e = _entries[cardId];
+    if (e == null) return;
+    update(e.copyWith(favorite: !e.favorite));
+  }
+
+  /// Adds [label] to a card; labels are matched ignoring case so "trade"
+  /// and "Trade" stay one label.
+  void addLabel(String cardId, String label) {
+    final e = _entries[cardId];
+    final clean = label.trim();
+    if (e == null || clean.isEmpty) return;
+    final existing = allLabels.firstWhere(
+      (l) => l.toLowerCase() == clean.toLowerCase(),
+      orElse: () => clean,
+    );
+    if (e.labels.contains(existing)) return;
+    update(e.copyWith(labels: [...e.labels, existing]));
+  }
+
+  void removeLabel(String cardId, String label) {
+    final e = _entries[cardId];
+    if (e == null) return;
+    update(e.copyWith(labels: e.labels.where((l) => l != label).toList()));
+  }
+
   /// Adds one copy of [card]; keeps the existing photo unless [photoPath]
   /// is given.
   void addCopy(CatalogCard card, {String? photoPath}) {

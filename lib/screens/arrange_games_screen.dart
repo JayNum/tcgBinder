@@ -19,10 +19,7 @@ class ArrangeGamesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Arrange games',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: const Text('Arrange games'),
       ),
       body: Column(
         children: [
@@ -30,7 +27,7 @@ class ArrangeGamesScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
             child: Text(
               'Drag a game by its handle to move it. Switch a game off to '
-              'hide it from the home screen and the scanner — your cards '
+              'hide it from the Binders tab and the scanner — your cards '
               'stay saved.',
               style: TextStyle(color: tokens.muted, height: 1.4),
             ),
@@ -57,8 +54,7 @@ class ArrangeGamesScreen extends StatelessWidget {
                   child: Material(
                     color: tokens.surface,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: tokens.border),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(4, 8, 12, 8),
@@ -96,13 +92,13 @@ class ArrangeGamesScreen extends StatelessWidget {
                             child: Text(
                               game.name,
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
                                 color: hidden ? tokens.labelMissing : tokens.text,
                               ),
                             ),
                           ),
-                          Switch(
+                          Switch.adaptive(
                             value: !hidden,
                             onChanged: (show) =>
                                 settings.setGameHidden(game.id, !show),

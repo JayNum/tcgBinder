@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../catalog/catalog_scope.dart';
@@ -6,6 +7,8 @@ import '../models/catalog.dart';
 import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
+import '../widgets/card_search_widgets.dart';
+import '../widgets/ios.dart';
 import 'binder_screen.dart';
 
 /// All sets of one game, each its own binder. Filterable and sortable.
@@ -24,7 +27,21 @@ class _GameScreenState extends State<GameScreen> {
   SetSort _sort = SetSort.newest;
   Future<List<CardSet>>? _loading;
   String _query = '';
+  Set<String> _labels = {};
+  bool _favorites = false;
+  bool _owned = false;
   final _search = TextEditingController();
+
+  CardFilters get _filters => CardFilters(
+        query: _query,
+        labels: _labels,
+        favorites: _favorites,
+        owned: _owned,
+      );
+
+  /// Labels, hearts and "owned" only make sense for cards, so they hide the
+  /// list of sets and show cards instead.
+  bool get _cardsOnly => _labels.isNotEmpty || _favorites || _owned;
 
   @override
   void dispose() {
@@ -49,6 +66,18 @@ class _GameScreenState extends State<GameScreen> {
     _loading ??= CatalogScope.of(context).sets(widget.game.id);
   }
 
+  Future<void> _pickSort() async {
+    final sort = await showActionSheet<SetSort>(
+      context,
+      title: 'Sort sets',
+      actions: [
+        for (final sort in SetSort.values)
+          SheetAction(sort.label, sort, checked: sort == _sort),
+      ],
+    );
+    if (sort != null) setState(() => _sort = sort);
+  }
+
   Future<void> _refresh() async {
     final future = CatalogScope.of(context).sets(widget.game.id, refresh: true);
     setState(() => _loading = future);
@@ -65,33 +94,27 @@ class _GameScreenState extends State<GameScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.game.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             Text(
               '${store.copiesInGame(widget.game.id)} cards · '
               '${started.length} ${started.length == 1 ? 'binder' : 'binders'} started',
-              style: TextStyle(fontSize: 12, color: tokens.muted),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: tokens.muted,
+              ),
             ),
           ],
         ),
         actions: [
-          PopupMenuButton<SetSort>(
+          IconButton(
             tooltip: 'Sort sets',
-            icon: const Icon(Icons.sort),
-            initialValue: _sort,
-            onSelected: (sort) => setState(() => _sort = sort),
-            itemBuilder: (context) => [
-              for (final sort in SetSort.values)
-                CheckedPopupMenuItem<SetSort>(
-                  value: sort,
-                  checked: sort == _sort,
-                  child: Text(sort.label),
-                ),
-            ],
+            icon: const Icon(Icons.swap_vert_rounded),
+            onPressed: _pickSort,
           ),
         ],
       ),
@@ -130,39 +153,25 @@ class _GameScreenState extends State<GameScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    child: TextField(
+                    child: CupertinoSearchTextField(
                       controller: _search,
-                      onChanged: (value) => setState(() => _query = value.trim()),
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: 'Search sets by name or code',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Clear search',
-                                icon: const Icon(Icons.close),
-                                onPressed: () {
-                                  _search.clear();
-                                  setState(() => _query = '');
-                                },
-                              ),
-                        filled: true,
-                        fillColor: tokens.surface,
-                        isDense: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: tokens.border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: tokens.border),
-                        ),
-                      ),
+                      placeholder: 'Search sets and cards',
+                      onChanged: (value) =>
+                          setState(() => _query = value.trim()),
                     ),
                   ),
                 ),
-                if (kinds.length > 1)
+                SliverToBoxAdapter(
+                  child: CardFilterBar(
+                    filters: _filters,
+                    onChanged: (f) => setState(() {
+                      _labels = f.labels;
+                      _favorites = f.favorites;
+                      _owned = f.owned;
+                    }),
+                  ),
+                ),
+                if (kinds.length > 1 && !_cardsOnly)
                   SliverToBoxAdapter(
                     child: SizedBox(
                       height: 52,
@@ -185,41 +194,50 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ),
                   ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-                    child: Text(
+                if (!_cardsOnly) ...[
+                  SliverToBoxAdapter(
+                    child: SectionHeader(
                       '${shown.length} ${shown.length == 1 ? 'set' : 'sets'} · '
                       '${_sort.label}',
-                      style: TextStyle(fontSize: 12, color: tokens.muted),
                     ),
                   ),
-                ),
-                if (shown.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Text(
-                        _query.isEmpty
-                            ? 'No sets of this kind.'
-                            : 'No set matches "$_query".',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: tokens.muted),
+                  if (shown.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Text(
+                          _query.isEmpty
+                              ? 'No sets of this kind.'
+                              : 'No set matches "$_query".',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: tokens.muted),
+                        ),
+                      ),
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    sliver: SliverList.separated(
+                      itemCount: shown.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, i) => _SetRow(
+                        game: widget.game,
+                        set: shown[i],
                       ),
                     ),
                   ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  sliver: SliverList.separated(
-                    itemCount: shown.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, i) => _SetRow(
-                      game: widget.game,
-                      set: shown[i],
+                ],
+                // Cards that match the search, or the chosen labels.
+                if (_filters.active)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: CardResults(
+                        filters: _filters,
+                        gameId: widget.game.id,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           );
@@ -241,16 +259,8 @@ class _FilterChip extends StatelessWidget {
   final VoidCallback onSelected;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onSelected(),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      PillChip(label: label, selected: selected, onTap: onSelected);
 }
 
 class _SetRow extends StatelessWidget {
@@ -284,10 +294,7 @@ class _SetRow extends StatelessWidget {
 
     return Material(
       color: tokens.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: tokens.border),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.of(context).push(
@@ -326,8 +333,8 @@ class _SetRow extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -377,7 +384,7 @@ class _SetRow extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: tokens.muted),
+              Icon(Icons.chevron_right_rounded, color: tokens.muted),
             ],
           ),
         ),

@@ -85,6 +85,20 @@ class CatalogRepository extends ChangeNotifier {
   /// Cards already downloaded for [setId], or null.
   List<CatalogCard>? cachedCards(String setId) => _cards[setId];
 
+  /// Every downloaded card list, by set id. Used by card search.
+  Map<String, List<CatalogCard>> get allCachedCards =>
+      Map.unmodifiable(_cards);
+
+  /// The catalog card behind a collection entry, if its set is downloaded.
+  CatalogCard? cardFor(String setId, String cardId) {
+    final cards = _cards[setId];
+    if (cards == null) return null;
+    for (final c in cards) {
+      if (c.id == cardId) return c;
+    }
+    return null;
+  }
+
   CardSet? setById(String setId) {
     for (final sets in _sets.values) {
       for (final s in sets) {

@@ -52,6 +52,8 @@ class CollectionEntry {
     this.edition = Edition.unlimited,
     this.language = 'English',
     this.photoPath,
+    this.favorite = false,
+    this.labels = const [],
   });
 
   final String cardId;
@@ -70,12 +72,20 @@ class CollectionEntry {
 
   bool get hasPhoto => photoPath != null;
 
+  /// Shown on the Favorites tab (the heart on the card).
+  final bool favorite;
+
+  /// The user's own labels for this card, e.g. "Trade" or "Deck".
+  final List<String> labels;
+
   CollectionEntry copyWith({
     int? quantity,
     CardCondition? condition,
     Edition? edition,
     String? language,
     String? photoPath,
+    bool? favorite,
+    List<String>? labels,
   }) {
     return CollectionEntry(
       cardId: cardId,
@@ -87,6 +97,8 @@ class CollectionEntry {
       edition: edition ?? this.edition,
       language: language ?? this.language,
       photoPath: photoPath ?? this.photoPath,
+      favorite: favorite ?? this.favorite,
+      labels: labels ?? this.labels,
     );
   }
 
@@ -100,6 +112,8 @@ class CollectionEntry {
         'edition': edition.name,
         'language': language,
         'photoPath': photoPath,
+        'favorite': favorite,
+        'labels': labels,
       };
 
   factory CollectionEntry.fromJson(Map<String, Object?> json) =>
@@ -114,5 +128,11 @@ class CollectionEntry {
         edition: Edition.byName(json['edition'] as String?),
         language: json['language'] as String? ?? 'English',
         photoPath: json['photoPath'] as String?,
+        favorite: json['favorite'] as bool? ?? false,
+        labels: [
+          if (json['labels'] is List)
+            for (final l in json['labels']! as List)
+              if (l is String && l.trim().isNotEmpty) l.trim(),
+        ],
       );
 }

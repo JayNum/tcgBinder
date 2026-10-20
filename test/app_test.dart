@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:tcg_binder/app.dart';
+import 'package:tcg_binder/catalog/card_search.dart';
 import 'package:tcg_binder/catalog/catalog_repository.dart';
 import 'package:tcg_binder/catalog/sources/source.dart';
 import 'package:tcg_binder/data/collection_store.dart';
@@ -80,6 +82,12 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
+  /// The bar's own "Binders" label is the last one in the tree.
+  Future<void> openBinders(WidgetTester tester) async {
+    await tester.tap(find.text('Binders').last);
+    await tester.pumpAndSettle();
+  }
+
   Widget buildApp(CollectionStore store) => TcgBinderApp(
         collection: store,
         settings: SettingsStore(),
@@ -98,7 +106,10 @@ void main() {
     final store = CollectionStore();
     await tester.pumpWidget(buildApp(store));
 
-    expect(find.text('My collection'), findsOneWidget);
+    // First tab: no favorites yet.
+    expect(find.text('No favorites yet'), findsOneWidget);
+
+    await openBinders(tester);
     expect(find.text('Not started yet'), findsNWidgets(5));
 
     // Game → sets (newest first) → binder.
@@ -123,18 +134,113 @@ void main() {
     expect(find.text('Add photo'), findsOneWidget);
   });
 
+  testWidgets('a heart puts a card on the Favorites tab', (tester) async {
+    usePhoneScreen(tester);
+    final store = CollectionStore();
+    await tester.pumpWidget(buildApp(store));
+    await openBinders(tester);
+    await tester.tap(find.text('One Piece'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('The Time of Battle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Portgas.D.Ace').first);
+    await tester.pumpAndSettle();
+
+    // Not owned yet: no heart.
+    expect(find.byTooltip('Add to favorites'), findsNothing);
+    await tester.tap(find.text('Add without photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Add to favorites'));
+    await tester.pumpAndSettle();
+    expect(store.favorites, hasLength(1));
+    expect(find.byTooltip('Remove from favorites'), findsOneWidget);
+
+    // The bar is still there inside the card, so Favorites is one tap away.
+    await tester.tap(find.text('Favorites').last);
+    await tester.pumpAndSettle();
+    expect(find.text('No favorites yet'), findsNothing);
+    expect(find.text('ALL FAVORITES'), findsOneWidget);
+    expect(find.text('Portgas.D.Ace'), findsWidgets);
+  });
+
+  testWidgets('cards can be found by name and by label', (tester) async {
+    usePhoneScreen(tester);
+    final catalog = CatalogRepository(
+      sources: {
+        for (final id in ['onepiece', 'pokemon', 'magic', 'lorcana', 'riftbound'])
+          id: FakeSource(id),
+      },
+      cacheDir: null,
+    );
+    await catalog.sets('onepiece');
+    await catalog.cards(FakeSource.testSet);
+    final store = CollectionStore()
+      ..addCopy((await catalog.cards(FakeSource.testSet)).first)
+      ..addLabel('op16-001', 'Trade');
+
+    await tester.pumpWidget(TcgBinderApp(
+      collection: store,
+      settings: SettingsStore(),
+      catalog: catalog,
+      ads: AdsService(enabled: false),
+    ));
+    await openBinders(tester);
+
+    // Search the cards themselves, from the Binders tab.
+    await tester.enterText(find.byType(CupertinoSearchTextField), 'ace');
+    await tester.pumpAndSettle();
+    expect(find.text('2 cards'.toUpperCase()), findsOneWidget);
+    expect(find.textContaining('Trade'), findsWidgets);
+
+    // Show only cards with the label.
+    await tester.enterText(find.byType(CupertinoSearchTextField), '');
+    await tester.tap(find.text('Trade').first);
+    await tester.pumpAndSettle();
+    expect(find.text('1 card'.toUpperCase()), findsOneWidget);
+    expect(find.text('Portgas.D.Ace'), findsOneWidget);
+  });
+
+  test('search ranks owned cards first and understands codes', () async {
+    final catalog = CatalogRepository(
+      sources: {'onepiece': FakeSource('onepiece')},
+      cacheDir: null,
+    );
+    await catalog.sets('onepiece');
+    final cards = await catalog.cards(FakeSource.testSet);
+    final store = CollectionStore()..addCopy(cards[1]);
+
+    final byCode = searchCards(catalog, store, query: 'op16 001');
+    expect(byCode, hasLength(2));
+    expect(byCode.first.card.id, 'op16-001-p1'); // owned first
+    expect(searchCards(catalog, store, query: 'OP16-001'), hasLength(2));
+    expect(searchCards(catalog, store, query: 'zoro'), isEmpty);
+    expect(searchCards(catalog, store, query: 'ace', gameId: 'pokemon'), isEmpty);
+
+    store.addLabel('op16-001-p1', 'Deck');
+    store.addLabel('op16-001-p1', 'deck'); // same label, other case
+    expect(store.allLabels, ['Deck']);
+    expect(
+      searchCards(catalog, store, labels: {'Deck'}).map((h) => h.card.id),
+      ['op16-001-p1'],
+    );
+    expect(searchCards(catalog, store, favoritesOnly: true), isEmpty);
+    store.toggleFavorite('op16-001-p1');
+    expect(searchCards(catalog, store, favoritesOnly: true), hasLength(1));
+  });
+
   testWidgets('sets can be sorted by name', (tester) async {
     usePhoneScreen(tester);
     await tester.pumpWidget(buildApp(CollectionStore()));
+    await openBinders(tester);
     await tester.tap(find.text('One Piece'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Newest first'), findsOneWidget);
+    expect(find.textContaining('NEWEST FIRST'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Sort sets'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Name A–Z').last);
+    await tester.tap(find.text('Name A–Z'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Name A–Z'), findsOneWidget);
+    expect(find.textContaining('NAME A–Z'), findsOneWidget);
 
     final romance = tester.getTopLeft(find.text('Romance Dawn')).dy;
     final battle = tester.getTopLeft(find.text('The Time of Battle')).dy;
@@ -144,15 +250,16 @@ void main() {
   testWidgets('sets can be searched by name or code', (tester) async {
     usePhoneScreen(tester);
     await tester.pumpWidget(buildApp(CollectionStore()));
+    await openBinders(tester);
     await tester.tap(find.text('One Piece'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'op16');
+    await tester.enterText(find.byType(CupertinoSearchTextField), 'op16');
     await tester.pumpAndSettle();
     expect(find.text('The Time of Battle'), findsOneWidget);
     expect(find.text('Romance Dawn'), findsNothing);
 
-    await tester.enterText(find.byType(TextField), 'romance');
+    await tester.enterText(find.byType(CupertinoSearchTextField), 'romance');
     await tester.pumpAndSettle();
     expect(find.text('Romance Dawn'), findsOneWidget);
     expect(find.text('The Time of Battle'), findsNothing);
@@ -172,6 +279,7 @@ void main() {
     settings.setGameOrder(['magic', 'onepiece', 'pokemon', 'lorcana', 'riftbound']);
     settings.setGameHidden('pokemon', true);
     await tester.pumpAndSettle();
+    await openBinders(tester);
 
     expect(find.text('Pokémon'), findsNothing);
     final magic = tester.getTopLeft(find.text('Magic'));

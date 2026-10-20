@@ -8,6 +8,7 @@ import '../data/collection_store.dart';
 import '../models/catalog.dart';
 import '../services/ads.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ios.dart';
 import '../widgets/pocket.dart';
 import 'card_detail_screen.dart';
 
@@ -63,32 +64,36 @@ class _BinderScreenState extends State<BinderScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.set.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             Text(
               '${game.name} · ${widget.set.code}',
-              style: TextStyle(fontSize: 12, color: tokens.muted),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: tokens.muted,
+              ),
             ),
           ],
         ),
         actions: [
-          PopupMenuButton<String>(
+          IconButton(
             tooltip: 'More',
-            onSelected: (value) {
-              if (value == 'refresh') _reload(refresh: true);
+            icon: const Icon(Icons.more_horiz_rounded),
+            onPressed: () async {
+              final choice = await showActionSheet<String>(
+                context,
+                actions: const [
+                  SheetAction('Download card list again', 'refresh'),
+                ],
+              );
+              if (choice == 'refresh') _reload(refresh: true);
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'refresh',
-                child: Text('Download card list again'),
-              ),
-            ],
           ),
         ],
       ),
@@ -241,7 +246,7 @@ class _Binder extends StatelessWidget {
             IconButton(
               tooltip: 'Previous page',
               onPressed: page > 0 ? () => onGoTo(page - 1) : null,
-              icon: const Icon(Icons.chevron_left),
+              icon: const Icon(Icons.chevron_left_rounded),
             ),
             Text(
               'Page ${page + 1} of $pageCount',
@@ -254,7 +259,7 @@ class _Binder extends StatelessWidget {
             IconButton(
               tooltip: 'Next page',
               onPressed: page < pageCount - 1 ? () => onGoTo(page + 1) : null,
-              icon: const Icon(Icons.chevron_right),
+              icon: const Icon(Icons.chevron_right_rounded),
             ),
           ],
         ),
@@ -293,8 +298,7 @@ class _BinderPage extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: tokens.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: tokens.border),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
               color: Color(0x14000000),
