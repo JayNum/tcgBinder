@@ -92,7 +92,6 @@ class PriceLinks {
         return Uri.https(host, '/sch/i.html', {
           '_nkw': ebayQuery(game: game, card: card, set: set, edition: edition),
           'LH_Sold': '1',
-          'LH_Complete': '1',
         });
     }
   }

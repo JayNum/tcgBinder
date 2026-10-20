@@ -8,6 +8,7 @@ import '../screens/card_detail_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/label_colors.dart';
 import 'card_photo.dart';
+import 'download_sets.dart';
 import 'ios.dart';
 
 /// What the user has switched on next to the search box.
@@ -123,7 +124,7 @@ class CardResults extends StatelessWidget {
     if (hits.isEmpty) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
-        child: Text(
+        child: Column(children: [Text(
           downloaded == 0 && !onlyOwned
               ? 'No card lists are downloaded yet. Open a binder once and '
                   'its cards can be searched here.'
@@ -131,6 +132,8 @@ class CardResults extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(color: tokens.muted, height: 1.4),
         ),
+          if (!onlyOwned) DownloadAllSetsButton(gameId: gameId),
+        ]),
       );
     }
 
@@ -161,6 +164,7 @@ class CardResults extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: tokens.muted),
             ),
           ),
+        if (!onlyOwned) DownloadAllSetsButton(gameId: gameId),
       ],
     );
   }

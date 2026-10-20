@@ -232,7 +232,9 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   Future<void> _open(BuildContext context, Uri uri) async {
-    final ok = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    // eBay refuses the in-app browser ("Sorry, something went wrong"), so
+    // marketplaces open in the phone's normal browser or the eBay app.
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open the browser.')),
