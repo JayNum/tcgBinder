@@ -98,7 +98,6 @@ class CardFace extends StatelessWidget {
                 ),
               ),
             ),
-      ),
     );
   }
 }
