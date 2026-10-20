@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../data/collection_store.dart';
@@ -83,7 +84,7 @@ class _BinderScreenState extends State<BinderScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'More',
+            tooltip: tr('More'),
             icon: const Icon(Icons.more_horiz_rounded),
             onPressed: () async {
               final choice = await showActionSheet<String>(
@@ -189,11 +190,11 @@ class _Binder extends StatelessWidget {
                               color: tokens.text,
                             ),
                           ),
-                          TextSpan(text: ' of $total collected'),
+                          TextSpan(text: tr(' of $total collected')),
                           if (ownedExtras > 0)
                             TextSpan(
-                              text: ' · $ownedExtras '
-                                  '${ownedExtras == 1 ? 'alt art' : 'alt arts'}',
+                              text: tr(' · $ownedExtras '
+                                  '${ownedExtras == 1 ? 'alt art' : 'alt arts'}'),
                             ),
                         ],
                       ),
@@ -244,7 +245,7 @@ class _Binder extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
-              tooltip: 'Previous page',
+              tooltip: tr('Previous page'),
               onPressed: page > 0 ? () => onGoTo(page - 1) : null,
               icon: const Icon(Icons.chevron_left_rounded),
             ),
@@ -257,7 +258,7 @@ class _Binder extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Next page',
+              tooltip: tr('Next page'),
               onPressed: page < pageCount - 1 ? () => onGoTo(page + 1) : null,
               icon: const Icon(Icons.chevron_right_rounded),
             ),

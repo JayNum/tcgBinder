@@ -1,6 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text;
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import '../catalog/catalog_scope.dart';
 import '../data/collection_store.dart';
 import '../theme/app_theme.dart';
@@ -36,7 +37,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: CupertinoSearchTextField(
-                placeholder: 'Name, code or set',
+                placeholder: tr('Name, code or set'),
                 onChanged: (value) =>
                     setState(() => _filters = _filters.copyWith(query: value)),
               ),

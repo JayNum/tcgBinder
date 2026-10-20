@@ -1,6 +1,8 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text;
+import 'package:flutter/material.dart' hide Text;
 
+import '../data/settings_store.dart';
+import '../l10n/l10n.dart';
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../services/ads.dart';
@@ -49,6 +51,45 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 24),
+                const SectionHeader('App language'),
+                GroupedSection(
+                  child: Builder(builder: (context) {
+                    final settings = SettingsScope.of(context);
+                    const names = {
+                      AppLanguage.system: 'Same as phone',
+                      'en': 'English',
+                      'de': 'Deutsch',
+                    };
+                    return ListTile(
+                      leading: const _IconTile(
+                        Icons.language_rounded,
+                        Color(0xFF30B0C7),
+                      ),
+                      title: const Text('App language'),
+                      subtitle: Text(names[settings.language] ?? 'English'),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: tokens.muted,
+                      ),
+                      onTap: () async {
+                        final picked = await showActionSheet<String>(
+                          context,
+                          title: 'App language',
+                          actions: [
+                            for (final e in names.entries)
+                              SheetAction(
+                                e.value,
+                                e.key,
+                                checked: e.key == settings.language,
+                              ),
+                          ],
+                        );
+                        if (picked != null) settings.setLanguage(picked);
+                      },
+                    );
+                  }),
                 ),
                 const SizedBox(height: 24),
                 const SectionHeader('Ads & privacy'),
@@ -216,7 +257,7 @@ class _ProCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Backup & restore, binder looks, batch scanning',
+                      'No ads, card text in every language, artwork scan, backup',
                       style: TextStyle(fontSize: 13, color: Colors.white),
                     ),
                   ],

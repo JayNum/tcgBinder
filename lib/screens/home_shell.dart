@@ -1,8 +1,9 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../services/ads.dart';
 import '../theme/app_theme.dart';
 import 'binders_screen.dart';

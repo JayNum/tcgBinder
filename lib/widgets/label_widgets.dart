@@ -1,6 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text;
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import '../theme/label_colors.dart';
 
@@ -70,7 +71,7 @@ Future<NewLabel?> showNewLabelDialog(BuildContext context) {
             children: [
               CupertinoTextField(
                 controller: controller,
-                placeholder: 'e.g. Trade',
+                placeholder: tr('e.g. Trade'),
                 autofocus: true,
                 maxLength: 24,
                 textCapitalization: TextCapitalization.sentences,

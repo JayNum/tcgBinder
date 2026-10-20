@@ -1,9 +1,10 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text;
+import 'package:flutter/material.dart' hide Text;
 import 'package:image_picker/image_picker.dart';
 
+import '../l10n/l10n.dart';
 import '../catalog/games.dart';
 import '../data/collection_store.dart';
 import '../data/settings_store.dart';

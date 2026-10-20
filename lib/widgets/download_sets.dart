@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../models/catalog.dart';

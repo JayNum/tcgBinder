@@ -1,6 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text;
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import '../catalog/catalog_scope.dart';
 import '../data/collection_store.dart';
 import '../models/catalog.dart';
@@ -111,7 +112,7 @@ class _GameScreenState extends State<GameScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Sort sets',
+            tooltip: tr('Sort sets'),
             icon: const Icon(Icons.swap_vert_rounded),
             onPressed: _pickSort,
           ),
@@ -153,7 +154,7 @@ class _GameScreenState extends State<GameScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                     child: CupertinoSearchTextField(
                       controller: _search,
-                      placeholder: 'Search sets and cards',
+                      placeholder: tr('Search sets and cards'),
                       onChanged: (value) =>
                           setState(() => _query = value.trim()),
                     ),

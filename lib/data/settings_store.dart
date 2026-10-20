@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 
+import '../l10n/l10n.dart' show AppLanguage;
 import '../theme/label_colors.dart';
 
 /// Small app settings saved on the phone: custom game images, game order,
@@ -22,9 +23,11 @@ class SettingsStore extends ChangeNotifier {
   final Set<String> _hiddenGames = {};
   final Map<String, int> _labelColors = {};
   bool _isPro = false;
+  String _language = AppLanguage.system;
   String? _lastFullScreenAd; // yyyy-mm-dd
 
   Future<void> load() async {
+    _applyLanguage();
     final f = file;
     if (f == null || !f.existsSync()) return;
     try {
@@ -42,6 +45,9 @@ class SettingsStore extends ChangeNotifier {
       final order = json['gameOrder'];
       if (order is List) _gameOrder = order.whereType<String>().toList();
       _isPro = json['isPro'] == true;
+      final lang = json['language'];
+      if (lang is String && (lang == 'en' || lang == 'de')) _language = lang;
+      _applyLanguage();
       _lastFullScreenAd = json['lastFullScreenAd'] as String?;
       final colors = json['labelColors'];
       if (colors is Map) {
@@ -61,6 +67,22 @@ class SettingsStore extends ChangeNotifier {
   /// by artwork. (Purchases are not connected yet; the Pro screen has a test
   /// switch in debug builds.)
   bool get isPro => _isPro;
+
+  /// `system`, `en` or `de`.
+  String get language => _language;
+
+  void setLanguage(String value) {
+    _language = value;
+    _applyLanguage();
+    _save();
+  }
+
+  void _applyLanguage() {
+    AppLanguage.current = AppLanguage.resolve(
+      _language,
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    );
+  }
 
   void setPro(bool value) {
     if (_isPro == value) return;
@@ -160,6 +182,7 @@ class SettingsStore extends ChangeNotifier {
       'hiddenGames': _hiddenGames.toList(),
       'labelColors': _labelColors,
       'isPro': _isPro,
+      'language': _language,
       'lastFullScreenAd': _lastFullScreenAd,
     });
     f.parent

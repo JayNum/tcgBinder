@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/l10n.dart';
 import '../catalog/catalog_scope.dart';
 import '../catalog/games.dart';
 import '../data/collection_store.dart';
@@ -579,7 +580,7 @@ class _YourCopy extends StatelessWidget {
                     ),
                   ),
                   IconButton.outlined(
-                    tooltip: 'One less',
+                    tooltip: tr('One less'),
                     onPressed: entry.quantity > 1
                         ? () => save(entry.copyWith(quantity: entry.quantity - 1))
                         : null,
@@ -594,7 +595,7 @@ class _YourCopy extends StatelessWidget {
                     ),
                   ),
                   IconButton.outlined(
-                    tooltip: 'One more',
+                    tooltip: tr('One more'),
                     onPressed: () =>
                         save(entry.copyWith(quantity: entry.quantity + 1)),
                     icon: const Icon(Icons.add),
@@ -796,7 +797,7 @@ class _SectionTitle extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
-        text.toUpperCase(),
+        tr(text).toUpperCase(),
         style: TextStyle(
           fontSize: 13,
           color: context.binder.muted,

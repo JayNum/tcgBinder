@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/scheduler.dart';
 
+import '../l10n/l10n.dart';
 import '../models/catalog.dart';
 import '../models/collection.dart';
 import '../theme/app_theme.dart';

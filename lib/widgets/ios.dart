@@ -1,6 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Text;
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import '../theme/label_colors.dart';
 
@@ -37,7 +38,7 @@ Future<T?> showActionSheet<T>(
           CupertinoActionSheetAction(
             isDestructiveAction: a.destructive,
             onPressed: () => Navigator.pop(context, a.value),
-            child: Text(a.checked ? '✓  ${a.label}' : a.label),
+            child: Text(a.checked ? '✓  ${tr(a.label)}' : a.label),
           ),
       ],
       cancelButton: CupertinoActionSheetAction(
@@ -95,7 +96,7 @@ Future<String?> promptDialog(
         padding: const EdgeInsets.only(top: 12),
         child: CupertinoTextField(
           controller: controller,
-          placeholder: placeholder,
+          placeholder: tr(placeholder),
           autofocus: true,
           maxLength: 24,
           textCapitalization: TextCapitalization.sentences,
@@ -153,7 +154,7 @@ class SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
       child: Text(
-        text.toUpperCase(),
+        tr(text).toUpperCase(),
         style: TextStyle(
           fontSize: 13,
           color: context.binder.muted,

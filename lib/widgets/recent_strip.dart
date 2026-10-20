@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
+import '../l10n/l10n.dart';
 import 'favorites_carousel.dart';
 
 /// A row of small cards. Five fit on screen; with more than five it scrolls
