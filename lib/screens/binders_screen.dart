@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../theme/game_colors.dart';
 import '../widgets/ios.dart';
 import 'arrange_games_screen.dart';
+import 'decks_screen.dart';
 import 'game_screen.dart';
 
 /// The Binders tab: pick a game, or search every card on the phone.
@@ -70,6 +71,31 @@ class _BindersScreenState extends State<BindersScreen> {
                 delegate: SliverChildListDelegate([
                   for (final game in shown) _GameTile(game: game),
                 ]),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: GroupedSection(
+                  child: ListTile(
+                    leading: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5856D6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.style_rounded,
+                          size: 18, color: Colors.white),
+                    ),
+                    title: const Text('Decks'),
+                    subtitle: const Text('Build decks and see what you still need'),
+                    trailing: Icon(Icons.chevron_right_rounded, color: tokens.muted),
+                    onTap: () => Navigator.of(context).push(
+                      CupertinoPageRoute<void>(builder: (_) => const DecksScreen()),
+                    ),
+                  ),
+                ),
               ),
             ),
             SliverToBoxAdapter(

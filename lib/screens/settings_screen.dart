@@ -91,6 +91,51 @@ class SettingsScreen extends StatelessWidget {
                   }),
                 ),
                 const SizedBox(height: 24),
+                const SectionHeader('Look'),
+                GroupedSection(
+                  child: Builder(builder: (context) {
+                    final settings = SettingsScope.of(context);
+                    return ListTile(
+                      leading: const _IconTile(
+                        Icons.brush_rounded,
+                        Color(0xFFAF52DE),
+                      ),
+                      title: const Text('App skin'),
+                      subtitle: Text(settings.activeSkin.label),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: tokens.muted,
+                      ),
+                      onTap: () async {
+                        final picked = await showActionSheet<AppSkin>(
+                          context,
+                          title: 'App skin',
+                          actions: [
+                            for (final k in AppSkin.values)
+                              SheetAction(
+                                k.proOnly && !settings.isPro
+                                    ? '${k.label} · Pro'
+                                    : k.label,
+                                k,
+                                checked: k == settings.activeSkin,
+                              ),
+                          ],
+                        );
+                        if (picked == null || !context.mounted) return;
+                        if (picked.proOnly && !settings.isPro) {
+                          Navigator.of(context).push(
+                            CupertinoPageRoute<void>(
+                              builder: (_) => const ProScreen(),
+                            ),
+                          );
+                          return;
+                        }
+                        settings.setSkin(picked);
+                      },
+                    );
+                  }),
+                ),
+                const SizedBox(height: 24),
                 const SectionHeader('Card data'),
                 GroupedSection(
                   child: Column(

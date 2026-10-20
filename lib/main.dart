@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'app.dart';
 import 'catalog/catalog_repository.dart';
 import 'data/collection_store.dart';
+import 'data/deck_store.dart';
 import 'data/settings_store.dart';
 
 Future<void> main() async {
@@ -33,14 +34,16 @@ Future<void> main() async {
     file: File(p.join(docs.path, 'settings.json')),
     imageDir: gameImages,
   );
+  final decks = DeckStore(file: File(p.join(docs.path, 'decks.json')));
   final catalog = CatalogRepository.live(
     Directory(p.join(support.path, 'catalog')),
   );
-  await Future.wait([collection.load(), settings.load(), catalog.loadCache()]);
+  await Future.wait([collection.load(), settings.load(), decks.load(), catalog.loadCache()]);
 
   runApp(TcgBinderApp(
     collection: collection,
     settings: settings,
     catalog: catalog,
+    decks: decks,
   ));
 }

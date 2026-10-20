@@ -131,12 +131,21 @@ class GroupedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.binder;
     return Container(
       padding: padding,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: context.binder.surface,
+        color: tokens.surface,
         borderRadius: BorderRadius.circular(12),
+        border: tokens.chunky
+            ? Border.all(color: tokens.text, width: 2.5)
+            : tokens.outlined
+                ? Border.all(color: tokens.border)
+                : null,
+        boxShadow: tokens.chunky
+            ? [BoxShadow(color: tokens.text, offset: const Offset(3, 3))]
+            : null,
       ),
       child: Material(type: MaterialType.transparency, child: child),
     );

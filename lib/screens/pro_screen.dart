@@ -41,6 +41,18 @@ class _ProScreenState extends State<ProScreen> {
           'anywhere and restore it on any phone.',
     ),
     (
+      Icons.style_rounded,
+      Color(0xFF5856D6),
+      'Deck builder',
+      'Build as many decks as you like. Free has one deck per game.',
+    ),
+    (
+      Icons.brush_rounded,
+      Color(0xFFE8C46B),
+      'App skins',
+      'Vault and Playmat: two more looks for the whole app.',
+    ),
+    (
       Icons.palette_rounded,
       Color(0xFFAF52DE),
       'Binder looks',

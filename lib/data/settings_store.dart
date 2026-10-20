@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 
 import '../l10n/l10n.dart' show AppLanguage;
+import '../theme/app_theme.dart' show AppSkin;
 import '../theme/label_colors.dart';
 
 /// Small app settings saved on the phone: custom game images, game order,
@@ -24,6 +25,7 @@ class SettingsStore extends ChangeNotifier {
   final Map<String, int> _labelColors = {};
   bool _isPro = false;
   String _language = AppLanguage.system;
+  AppSkin _skin = AppSkin.classic;
 
   Future<void> load() async {
     _applyLanguage();
@@ -44,6 +46,7 @@ class SettingsStore extends ChangeNotifier {
       final order = json['gameOrder'];
       if (order is List) _gameOrder = order.whereType<String>().toList();
       _isPro = json['isPro'] == true;
+      _skin = AppSkin.byName(json['skin'] as String?);
       final lang = json['language'];
       if (lang is String && (lang == 'en' || lang == 'de')) _language = lang;
       _applyLanguage();
@@ -65,6 +68,17 @@ class SettingsStore extends ChangeNotifier {
   /// by artwork. (Purchases are not connected yet; the Pro screen has a test
   /// switch in debug builds.)
   bool get isPro => _isPro;
+
+  /// The look the user chose. Without Pro the app always looks Classic.
+  AppSkin get skin => _skin;
+
+  AppSkin get activeSkin => _isPro ? _skin : AppSkin.classic;
+
+  void setSkin(AppSkin value) {
+    if (_skin == value) return;
+    _skin = value;
+    _save();
+  }
 
   /// `system`, `en` or `de`.
   String get language => _language;
@@ -168,6 +182,7 @@ class SettingsStore extends ChangeNotifier {
       'labelColors': _labelColors,
       'isPro': _isPro,
       'language': _language,
+      'skin': _skin.name,
     });
     f.parent
         .create(recursive: true)

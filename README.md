@@ -86,3 +86,8 @@ lib/
   services/                   photos, marketplace links
   widgets/                    pocket, card photo
 ```
+
+## Decks and skins (Pro)
+
+- **Decks**: Binders → Decks. Free: 1 deck per game. Pro: unlimited. Any card of the game can go in a deck; cards you do not own are greyed out with a per-card Buy action (Cardmarket, TCGplayer, eBay). Ownership is counted per exact printing.
+- **Skins**: Settings → Look. Classic is free; Vault and Playmat are Pro (palette-level skins).

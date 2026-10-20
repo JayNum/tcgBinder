@@ -5,6 +5,21 @@ import 'package:flutter/cupertino.dart' show NoDefaultCupertinoThemeData;
 const _accentLight = Color(0xFF007AFF);
 const _accentDark = Color(0xFF0A84FF);
 
+/// The look of the app. Classic follows the phone (light or dark); Vault and
+/// Playmat are Pro skins from the design sheet.
+enum AppSkin {
+  classic('Classic', false),
+  vault('Vault', true),
+  playmat('Playmat', true);
+
+  const AppSkin(this.label, this.proOnly);
+  final String label;
+  final bool proOnly;
+
+  static AppSkin byName(String? name) =>
+      AppSkin.values.firstWhere((s) => s.name == name, orElse: () => classic);
+}
+
 /// Design tokens from the mockups, available via `context.binder`.
 @immutable
 class BinderColors extends ThemeExtension<BinderColors> {
@@ -25,6 +40,8 @@ class BinderColors extends ThemeExtension<BinderColors> {
     required this.successSoft,
     required this.danger,
     required this.adBackground,
+    this.chunky = false,
+    this.outlined = false,
   });
 
   final Color background;
@@ -43,6 +60,12 @@ class BinderColors extends ThemeExtension<BinderColors> {
   final Color successSoft;
   final Color danger;
   final Color adBackground;
+
+  /// Playmat: thick black outlines and hard shadows.
+  final bool chunky;
+
+  /// Vault: thin outlines on cards and panels.
+  final bool outlined;
 
   // Grouped-list look: grey page, white rows, hairline separators.
   static const light = BinderColors(
@@ -83,6 +106,48 @@ class BinderColors extends ThemeExtension<BinderColors> {
     adBackground: Color(0xFF1C1C1E),
   );
 
+  // Vault: deep night colours with a gold accent.
+  static const vault = BinderColors(
+    background: Color(0xFF0A0B12),
+    surface: Color(0xFF181A2E),
+    border: Color(0xFF2A2B45),
+    divider: Color(0xFF2A2B45),
+    text: Color(0xFFF2F0FA),
+    muted: Color(0xFFA9A6C9),
+    pocket: Color(0xFF181A2E),
+    pocketBorder: Color(0xFF2A2B45),
+    labelMissing: Color(0xFFA9A6C9),
+    cardEdge: Color(0xFFD9D4C6),
+    accentSoft: Color(0xFF2B2540),
+    accentSoftText: Color(0xFFE8C46B),
+    success: Color(0xFF7CF5B0),
+    successSoft: Color(0xFF12301B),
+    danger: Color(0xFFFF6B6B),
+    adBackground: Color(0xFF181A2E),
+    outlined: true,
+  );
+
+  // Playmat: warm paper, bold black outlines, bright blue accent.
+  static const playmat = BinderColors(
+    background: Color(0xFFFFF6E9),
+    surface: Color(0xFFFFFFFF),
+    border: Color(0xFF141414),
+    divider: Color(0xFFE6D8C0),
+    text: Color(0xFF141414),
+    muted: Color(0xFF5C5346),
+    pocket: Color(0xFFFFFFFF),
+    pocketBorder: Color(0xFF141414),
+    labelMissing: Color(0xFF5C5346),
+    cardEdge: Color(0xFF141414),
+    accentSoft: Color(0xFFFFE8A8),
+    accentSoftText: Color(0xFF1C3FCC),
+    success: Color(0xFF1E7B34),
+    successSoft: Color(0xFFD8F3E4),
+    danger: Color(0xFFD70015),
+    adBackground: Color(0xFFFFFFFF),
+    chunky: true,
+  );
+
   @override
   BinderColors copyWith() => this;
 
@@ -93,17 +158,36 @@ class BinderColors extends ThemeExtension<BinderColors> {
   }
 }
 
-ThemeData buildTheme(Brightness brightness) {
+ThemeData buildTheme(
+  Brightness requested, {
+  AppSkin skin = AppSkin.classic,
+}) {
+  // Vault is always dark and Playmat always light.
+  final brightness = switch (skin) {
+    AppSkin.vault => Brightness.dark,
+    AppSkin.playmat => Brightness.light,
+    AppSkin.classic => requested,
+  };
   final isDark = brightness == Brightness.dark;
-  final tokens = isDark ? BinderColors.dark : BinderColors.light;
-  final accent = isDark ? _accentDark : _accentLight;
+  final tokens = switch (skin) {
+    AppSkin.vault => BinderColors.vault,
+    AppSkin.playmat => BinderColors.playmat,
+    AppSkin.classic => isDark ? BinderColors.dark : BinderColors.light,
+  };
+  final accent = switch (skin) {
+    AppSkin.vault => const Color(0xFFE8C46B),
+    AppSkin.playmat => const Color(0xFF2D5BFF),
+    AppSkin.classic => isDark ? _accentDark : _accentLight,
+  };
+  final onAccent =
+      skin == AppSkin.vault ? const Color(0xFF14110A) : Colors.white;
 
   final scheme = ColorScheme.fromSeed(
     seedColor: _accentLight,
     brightness: brightness,
   ).copyWith(
     primary: accent,
-    onPrimary: Colors.white,
+    onPrimary: onAccent,
     surface: tokens.background,
     onSurface: tokens.text,
     error: tokens.danger,
@@ -186,12 +270,12 @@ ThemeData buildTheme(Brightness brightness) {
         fontWeight: FontWeight.w500,
         color: tokens.text,
       ),
-      secondaryLabelStyle: const TextStyle(
+      secondaryLabelStyle: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Colors.white,
+        color: onAccent,
       ),
-      checkmarkColor: Colors.white,
+      checkmarkColor: onAccent,
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: tokens.surface,
